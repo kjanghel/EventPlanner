@@ -353,6 +353,61 @@ export async function deleteCategory(id: string): Promise<void> {
 // Transactions
 // =====================================================================
 
+export type LedgerRow = Transaction & {
+  category_name: string
+  payer_name: string | null
+}
+
+// All transactions for an event, with category and payer name joined.
+// Read-only feed used by the Activity tab. Optional personId filter.
+export async function listEventTransactions(
+  eventId: string,
+  personId?: string
+): Promise<LedgerRow[]> {
+  let query = supabase
+    .from('transactions')
+    .select(
+      'id, event_id, category_id, person_id, amount, txn_date, note, receipt_path, from_scheduled_id, created_at, categories(name), people:person_id(name)'
+    )
+    .eq('event_id', eventId)
+    .is('deleted_at', null)
+    .order('txn_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (personId) query = query.eq('person_id', personId)
+
+  const { data, error } = await query
+  if (error) throw error
+  type Row = {
+    id: string
+    event_id: string
+    category_id: string
+    person_id: string | null
+    amount: number
+    txn_date: string
+    note: string | null
+    receipt_path: string | null
+    from_scheduled_id: string | null
+    created_at: string
+    categories: { name: string } | null
+    people: { name: string } | null
+  }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    event_id: r.event_id,
+    category_id: r.category_id,
+    person_id: r.person_id,
+    amount: r.amount,
+    txn_date: r.txn_date,
+    note: r.note,
+    receipt_path: r.receipt_path,
+    from_scheduled_id: r.from_scheduled_id,
+    created_at: r.created_at,
+    category_name: r.categories?.name ?? '',
+    payer_name: r.people?.name ?? null,
+  }))
+}
+
 export async function listTransactions(categoryId: string): Promise<Transaction[]> {
   const { data, error } = await supabase
     .from('transactions')
@@ -394,6 +449,56 @@ export async function deleteTransaction(id: string): Promise<void> {
     .from('transactions')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
+  if (error) throw error
+}
+
+// =====================================================================
+// Receipts (transactions.receipt_path → Storage bucket "receipts")
+// Path scheme: {event_id}/{transaction_id}/{timestamp}.jpg
+// =====================================================================
+
+const RECEIPTS_BUCKET = 'receipts'
+const MAX_RECEIPT_BYTES = 3 * 1024 * 1024 // safety cap after compression
+
+export async function uploadReceipt(
+  eventId: string,
+  transactionId: string,
+  blob: Blob
+): Promise<string> {
+  if (blob.size > MAX_RECEIPT_BYTES) {
+    throw new Error('Receipt file is too large (>3 MB after compression)')
+  }
+  const path = `${eventId}/${transactionId}/${Date.now()}.jpg`
+  const { error } = await supabase.storage
+    .from(RECEIPTS_BUCKET)
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+  if (error) throw error
+  return path
+}
+
+export async function setTransactionReceipt(
+  transactionId: string,
+  path: string | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('transactions')
+    .update({ receipt_path: path })
+    .eq('id', transactionId)
+  if (error) throw error
+}
+
+export async function getReceiptSignedUrl(path: string, expiresSeconds = 60): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(RECEIPTS_BUCKET)
+    .createSignedUrl(path, expiresSeconds)
+  if (error || !data?.signedUrl) {
+    throw error ?? new Error('Could not generate receipt URL')
+  }
+  return data.signedUrl
+}
+
+export async function removeReceiptFile(path: string): Promise<void> {
+  const { error } = await supabase.storage.from(RECEIPTS_BUCKET).remove([path])
   if (error) throw error
 }
 
@@ -635,6 +740,22 @@ export async function listEventInvites(eventId: string): Promise<EventInvite[]> 
     .order('created_at', { ascending: true })
   if (error) throw error
   return (data ?? []) as EventInvite[]
+}
+
+// Sends a magic-link sign-in email via Supabase Auth so the invitee can
+// land directly on the app. Existing trigger turns invites into members
+// on first sign-in. Best-effort — surfaces any error but doesn't roll back
+// the invite (the row is still in the DB and a copy-link fallback exists).
+export async function sendInviteEmail(email: string): Promise<void> {
+  const redirect = `${window.location.origin}/EventPlanner/`
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: redirect,
+      shouldCreateUser: true,
+    },
+  })
+  if (error) throw error
 }
 
 export async function inviteByEmail(eventId: string, email: string): Promise<EventInvite> {

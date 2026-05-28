@@ -16,6 +16,7 @@ import {
 import { TransactionFormSheet } from './TransactionFormSheet'
 import { ScheduledFormSheet } from './ScheduledFormSheet'
 import { MarkAsPaidSheet } from './MarkAsPaidSheet'
+import { TransactionReceiptActions } from './TransactionReceiptActions'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -130,21 +131,37 @@ export function CategoryDetail() {
               const payer = txn.person_id ? peopleById.get(txn.person_id) : null
               return (
                 <li key={txn.id}>
-                  <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-3 text-sm">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">₹{formatINR(txn.amount)}</p>
-                      <p className="text-xs text-slate-500">
-                        {formatDate(txn.txn_date)}
-                        {payer && <> · {payer}</>}
-                      </p>
-                      {txn.note && <p className="text-xs text-slate-500 mt-0.5 truncate">{txn.note}</p>}
+                  <div className="bg-white rounded-lg border border-slate-200 p-3 text-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">₹{formatINR(txn.amount)}</p>
+                        <p className="text-xs text-slate-500">
+                          {formatDate(txn.txn_date)}
+                          {payer && <> · {payer}</>}
+                        </p>
+                        {txn.note && (
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{txn.note}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTxn(txn.id)}
+                        className="text-xs text-red-600 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleDeleteTxn(txn.id)}
-                      className="text-xs text-red-600 hover:text-red-700 ml-2"
-                    >
-                      ✕
-                    </button>
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                      <TransactionReceiptActions
+                        eventId={eventId!}
+                        transactionId={txn.id}
+                        receiptPath={txn.receipt_path}
+                        onChange={(path) =>
+                          setTransactions((prev) =>
+                            prev?.map((t) => (t.id === txn.id ? { ...t, receipt_path: path } : t)) ?? null
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                 </li>
               )

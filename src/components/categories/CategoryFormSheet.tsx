@@ -47,7 +47,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Bhaat 1"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -59,7 +59,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
             value={planned}
             onChange={(e) => setPlanned(e.target.value)}
             placeholder="0"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
         <div>
@@ -69,7 +69,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
             value={confirmed}
             onChange={(e) => setConfirmed(e.target.value)}
             placeholder="0"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
       </div>
@@ -82,7 +82,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="e.g. Vegetarian menu"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -90,7 +90,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
         <button
           type="submit"
           disabled={busy || !name.trim()}
-          className="flex-1 bg-slate-900 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+          className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>

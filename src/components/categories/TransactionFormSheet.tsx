@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { createTransaction, listPeople, type Transaction, type Person } from '../../lib/queries'
+import {
+  createTransaction,
+  listPeople,
+  uploadReceipt,
+  setTransactionReceipt,
+  type Transaction,
+  type Person,
+} from '../../lib/queries'
+import { compressImage } from '../../lib/images'
 
 interface TransactionFormSheetProps {
   eventId: string
@@ -14,6 +22,7 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
   const [personId, setPersonId] = useState<string>('')
   const [txnDate, setTxnDate] = useState(new Date().toISOString().split('T')[0])
   const [note, setNote] = useState('')
+  const [receipt, setReceipt] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,18 +36,38 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
       setError('Amount must be greater than 0')
       return
     }
+    if (!personId) {
+      setError('Select who paid')
+      return
+    }
     setError(null)
     setBusy(true)
     try {
       const txn = await createTransaction({
         event_id: eventId,
         category_id: categoryId,
-        person_id: personId || null,
+        person_id: personId,
         amount: parseFloat(amount),
         txn_date: txnDate,
         note: note.trim() || undefined,
       })
-      onAdded(txn)
+
+      let withReceipt = txn
+      if (receipt) {
+        try {
+          const blob = await compressImage(receipt)
+          const path = await uploadReceipt(eventId, txn.id, blob)
+          await setTransactionReceipt(txn.id, path)
+          withReceipt = { ...txn, receipt_path: path }
+        } catch (uploadErr) {
+          // Transaction is saved; surface the receipt failure but don't roll back.
+          setError(
+            'Transaction saved but receipt upload failed: ' +
+              (uploadErr instanceof Error ? uploadErr.message : 'unknown')
+          )
+        }
+      }
+      onAdded(withReceipt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add transaction')
       setBusy(false)
@@ -56,24 +85,30 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Paid by</label>
         <select
+          required
           value={personId}
           onChange={(e) => setPersonId(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          <option value="">Select person...</option>
+          <option value="">Select person…</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
+        {people.length === 0 && (
+          <p className="text-xs text-amber-700 mt-1">
+            Add a person on the People tab first.
+          </p>
+        )}
       </div>
 
       <div>
@@ -82,7 +117,7 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           type="date"
           value={txnDate}
           onChange={(e) => setTxnDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -94,15 +129,31 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="e.g. Advance payment"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1">
+          Receipt <span className="text-slate-400 font-normal">(optional)</span>
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+          className="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-xs file:font-medium"
+        />
+        {receipt && (
+          <p className="text-xs text-slate-500 mt-1 truncate">{receipt.name}</p>
+        )}
       </div>
 
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={busy || !amount.trim()}
-          className="flex-1 bg-slate-900 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+          disabled={busy || !amount.trim() || !personId}
+          className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>

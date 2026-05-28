@@ -44,12 +44,16 @@ export function MarkAsPaidSheet({
       setError('Amount must be greater than 0')
       return
     }
+    if (!personId) {
+      setError('Select who paid')
+      return
+    }
     setError(null)
     setBusy(true)
     try {
       const result = await markScheduledAsPaid(scheduledId, {
         event_id: eventId,
-        person_id: personId || null,
+        person_id: personId,
         amount: paidAmount,
         note: note.trim() || undefined,
       })
@@ -72,7 +76,7 @@ export function MarkAsPaidSheet({
           step="0.01"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
         {isPartial && (
           <p className="text-xs text-amber-700 mt-1">
@@ -84,17 +88,23 @@ export function MarkAsPaidSheet({
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Paid by</label>
         <select
+          required
           value={personId}
           onChange={(e) => setPersonId(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          <option value="">Select person...</option>
+          <option value="">Select person…</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
+        {people.length === 0 && (
+          <p className="text-xs text-amber-700 mt-1">
+            Add a person on the People tab first.
+          </p>
+        )}
       </div>
 
       <div>
@@ -105,14 +115,14 @@ export function MarkAsPaidSheet({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="e.g. Paid via bank transfer"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !personId || !amount.trim()}
           className="flex-1 bg-green-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Saving…' : isPartial ? 'Record partial' : 'Mark as Paid'}

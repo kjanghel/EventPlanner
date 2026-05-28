@@ -76,7 +76,7 @@ export function ProfileSettings() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Karan"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
               <p className="text-xs text-slate-400 mt-1">
                 Shown to other members of events you share.
@@ -92,7 +92,7 @@ export function ProfileSettings() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
               <p className="text-xs text-slate-400 mt-1">
                 Optional — shared with members so they can reach you.
@@ -102,7 +102,7 @@ export function ProfileSettings() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-slate-900 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
+              className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
             >
               {busy ? 'Saving…' : 'Save'}
             </button>

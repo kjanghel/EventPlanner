@@ -44,7 +44,7 @@ export function SignIn() {
         <button
           onClick={handleGoogle}
           disabled={busy}
-          className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white rounded-lg py-2.5 px-4 text-sm font-medium disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white rounded-lg py-2.5 px-4 text-sm font-medium disabled:opacity-50"
         >
           Continue with Google
         </button>
@@ -66,7 +66,7 @@ export function SignIn() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             <button
               type="submit"

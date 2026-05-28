@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { listMyEvents, type EventTotals } from '../../lib/queries'
 import { useAuth } from '../../lib/auth'
 import { UpcomingBanner } from './UpcomingBanner'
+import { Brand } from '../brand/Logo'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -77,12 +78,13 @@ export function EventsList() {
     <div className="min-h-full flex flex-col bg-slate-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-base font-semibold tracking-tight">Event Planner</h1>
+          <Brand />
+          <h1 className="sr-only">Event Planner</h1>
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="Account menu"
-              className="w-9 h-9 rounded-full bg-slate-900 text-white text-xs font-semibold flex items-center justify-center hover:bg-slate-800 transition"
+              className="w-9 h-9 rounded-full bg-teal-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-teal-700 transition"
             >
               {initials(profile?.display_name, email)}
             </button>
@@ -147,7 +149,7 @@ export function EventsList() {
             </p>
             <Link
               to="/events/new"
-              className="inline-block bg-slate-900 text-white rounded-lg py-2 px-4 text-sm font-medium"
+              className="inline-block bg-teal-600 text-white rounded-lg py-2 px-4 text-sm font-medium"
             >
               Create your first event
             </Link>
@@ -179,7 +181,7 @@ export function EventsList() {
                       <div className="mb-3">
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-slate-900 rounded-full transition-all"
+                            className="h-full bg-teal-600 rounded-full transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -213,7 +215,7 @@ export function EventsList() {
         <Link
           to="/events/new"
           aria-label="New event"
-          className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-40 w-14 h-14 rounded-full bg-slate-900 text-white text-2xl font-light shadow-lg flex items-center justify-center hover:bg-slate-800 active:scale-95 transition"
+          className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-40 w-14 h-14 rounded-full bg-[#ff7e6b] text-white text-2xl font-light shadow-lg flex items-center justify-center hover:bg-[#f56a55] active:scale-95 transition"
         >
           +
         </Link>

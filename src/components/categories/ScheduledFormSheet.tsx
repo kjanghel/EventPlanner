@@ -54,7 +54,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -66,7 +66,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -77,7 +77,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
         <select
           value={payerId}
           onChange={(e) => setPayerId(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">No one assigned</option>
           {people.map((p) => (
@@ -96,7 +96,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="e.g. Final payment"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -104,7 +104,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
         <button
           type="submit"
           disabled={busy || !dueDate || !amount.trim()}
-          className="flex-1 bg-slate-900 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+          className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>

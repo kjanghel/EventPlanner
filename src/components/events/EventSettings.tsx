@@ -4,6 +4,7 @@ import {
   listEventMembers,
   listEventInvites,
   inviteByEmail,
+  sendInviteEmail,
   cancelInvite,
   removeMember,
   deleteEvent,
@@ -62,11 +63,36 @@ export function EventSettings() {
       const inv = await inviteByEmail(eventId, trimmed)
       setInvites((prev) => [...(prev ?? []), inv])
       setEmail('')
-      setInfo(`Invited ${inv.invited_email}. They'll join automatically next time they sign in.`)
+      try {
+        await sendInviteEmail(trimmed)
+        setInfo(`Invited ${inv.invited_email}. Sign-in email sent.`)
+      } catch (emailErr) {
+        // Invite is still saved; just couldn't send email (e.g. rate limited).
+        setInfo(
+          `Invited ${inv.invited_email}. Email send failed (` +
+            (emailErr instanceof Error ? emailErr.message : 'unknown') +
+            ') — use Copy link below to share manually.'
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not invite')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleCopyInvite = async (inv: EventInvite) => {
+    const eventName = event?.name ?? 'an event'
+    const url = `${window.location.origin}/EventPlanner/`
+    const text =
+      `You've been invited to plan "${eventName}" on Event Planner.\n` +
+      `Sign in with this email (${inv.invited_email}) at: ${url}`
+    try {
+      await navigator.clipboard.writeText(text)
+      setInfo('Invite text copied to clipboard.')
+    } catch {
+      // Fallback: surface the text so user can copy manually.
+      setError(text)
     }
   }
 
@@ -182,15 +208,21 @@ export function EventSettings() {
                 {invites.map((inv) => (
                   <li
                     key={inv.id}
-                    className="flex items-center justify-between text-sm"
+                    className="flex items-center justify-between text-sm gap-2"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{inv.invited_email}</p>
                       <p className="text-xs text-slate-500">Pending</p>
                     </div>
                     <button
+                      onClick={() => handleCopyInvite(inv)}
+                      className="text-xs text-teal-700 hover:text-teal-800"
+                    >
+                      Copy link
+                    </button>
+                    <button
                       onClick={() => handleCancelInvite(inv.id)}
-                      className="text-xs text-red-600 hover:text-red-700 ml-2"
+                      className="text-xs text-red-600 hover:text-red-700"
                     >
                       Cancel
                     </button>
@@ -213,7 +245,7 @@ export function EventSettings() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alice@gmail.com"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   They'll join automatically the next time they sign in with this email.
@@ -222,7 +254,7 @@ export function EventSettings() {
               <button
                 type="submit"
                 disabled={busy || !email.trim()}
-                className="w-full bg-slate-900 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
+                className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
               >
                 {busy ? 'Inviting…' : 'Send invite'}
               </button>

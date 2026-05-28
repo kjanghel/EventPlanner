@@ -39,7 +39,7 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Vivek"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+91..."
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
         <button
           type="submit"
           disabled={busy || !name.trim()}
-          className="flex-1 bg-slate-900 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+          className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
           {busy ? 'Adding…' : 'Add'}
         </button>

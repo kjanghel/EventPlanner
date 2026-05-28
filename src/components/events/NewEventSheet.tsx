@@ -43,7 +43,7 @@ export function NewEventSheet() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Shadi"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
           <div>
@@ -54,14 +54,14 @@ export function NewEventSheet() {
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
 
           <button
             type="submit"
             disabled={busy || !name.trim()}
-            className="w-full bg-slate-900 text-white rounded-lg py-2.5 px-4 text-sm font-medium disabled:opacity-50"
+            className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-4 text-sm font-medium disabled:opacity-50"
           >
             {busy ? 'Creating…' : 'Create event'}
           </button>

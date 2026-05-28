@@ -7,6 +7,7 @@ import { EventSettings } from './components/events/EventSettings'
 import { EventSummary } from './components/events/EventSummary'
 import { CategoriesList } from './components/categories/CategoriesList'
 import { CategoryDetail } from './components/categories/CategoryDetail'
+import { Activity } from './components/activity/Activity'
 import { UpcomingList } from './components/upcoming/UpcomingList'
 import { PeopleList } from './components/people/PeopleList'
 import { ProfileSettings } from './components/profile/ProfileSettings'
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="summary" element={<EventSummary />} />
           <Route path="budget/:catId" element={<CategoryDetail />} />
           <Route path="budget" element={<CategoriesList />} />
+          <Route path="activity" element={<Activity />} />
           <Route path="upcoming" element={<UpcomingList />} />
           <Route path="people" element={<PeopleList />} />
           <Route index element={<Navigate to="summary" replace />} />

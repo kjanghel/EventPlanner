@@ -85,7 +85,7 @@ export function PeopleList() {
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full bg-slate-900 text-white rounded-lg py-2.5 px-4 text-sm font-medium"
+          className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-4 text-sm font-medium"
         >
           + Add person
         </button>
