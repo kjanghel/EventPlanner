@@ -3,13 +3,12 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 
 /**
- * Wraps routes that require a signed-in user with a captured phone number.
+ * Wraps routes that require a signed-in user.
  * - Not signed in → redirect to /
- * - Signed in but no phone → redirect to /profile/phone
  * - Otherwise → render children
  */
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, user, profile } = useAuth()
+  const { loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -21,6 +20,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <Navigate to="/" replace state={{ from: location }} />
-  if (!profile?.phone_e164) return <Navigate to="/profile/phone" replace />
   return <>{children}</>
 }

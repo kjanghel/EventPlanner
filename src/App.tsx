@@ -1,7 +1,5 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { SignIn } from './components/SignIn'
-import { PhoneCapture } from './components/PhoneCapture'
 import { EventsList } from './components/events/EventsList'
 import { NewEventSheet } from './components/events/NewEventSheet'
 import { EventHome } from './components/events/EventHome'
@@ -12,7 +10,7 @@ import { AuthGate } from './components/layout/AuthGate'
 import { useAuth } from './lib/auth'
 
 function RootLayout() {
-  const { loading, user, profile } = useAuth()
+  const { loading, user } = useAuth()
 
   if (loading) {
     return (
@@ -23,30 +21,15 @@ function RootLayout() {
   }
 
   if (!user) return <SignIn />
-  if (!profile?.phone_e164) return <PhoneCapture />
   return <Navigate to="/events" replace />
-}
-
-function RouteGuard({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate()
-  useEffect(() => {
-    const redirect = sessionStorage.redirect
-    if (redirect) {
-      delete sessionStorage.redirect
-      navigate(redirect, { replace: true })
-    }
-  }, [navigate])
-  return <>{children}</>
 }
 
 export default function App() {
   return (
     <BrowserRouter basename="/EventPlanner">
-      <RouteGuard>
-        <Routes>
+      <Routes>
         <Route path="/" element={<RootLayout />} />
         <Route path="/signin" element={<SignIn />} />
-        <Route path="/profile/phone" element={<PhoneCapture />} />
 
         <Route
           path="/events"
@@ -82,8 +65,7 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </RouteGuard>
+      </Routes>
     </BrowserRouter>
   )
 }

@@ -24,21 +24,33 @@ export function PhoneCapture() {
     }
     if (!user) return
     setBusy(true)
+    console.log('[PhoneCapture] Saving phone:', phone, 'user:', user.id)
     try {
-      const { error: upErr } = await supabase
+      console.log('[PhoneCapture] About to upsert profile...')
+      const { error: upErr, data } = await supabase
         .from('profiles')
-        .update({ display_name: displayName.trim() || null, phone_e164: phone })
-        .eq('id', user.id)
+        .upsert(
+          {
+            id: user.id,
+            display_name: displayName.trim() || null,
+            phone_e164: phone,
+          },
+          { onConflict: 'id' }
+        )
+        .select()
+      console.log('[PhoneCapture] Upsert returned:', { error: upErr, data })
       if (upErr) {
         setError(upErr.message)
         setBusy(false)
         return
       }
+      console.log('[PhoneCapture] Upsert successful, calling refreshProfile')
       await refreshProfile()
-      // Wait a tick for the context to update, then navigate
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      navigate('/events', { replace: true })
+      console.log('[PhoneCapture] refreshProfile done, navigating to /')
+      // Navigate to / — RootLayout will see the updated profile and redirect to /events
+      navigate('/', { replace: true })
     } catch (err) {
+      console.error('[PhoneCapture] Error:', err)
       setError(err instanceof Error ? err.message : 'Save failed')
       setBusy(false)
     }

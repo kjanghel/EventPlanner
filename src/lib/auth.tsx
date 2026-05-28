@@ -21,45 +21,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-    if (error) {
-      console.error('[auth] loadProfile failed:', error)
+    console.log('[auth] loadProfile called for:', userId)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      console.log('[auth] loadProfile result:', { data, error })
+      if (error) {
+        console.error('[auth] loadProfile failed:', error)
+        setProfile(null)
+        return
+      }
+      setProfile((data as Profile | null) ?? null)
+    } catch (err) {
+      console.error('[auth] loadProfile exception:', err)
       setProfile(null)
-      return
     }
-    setProfile((data as Profile | null) ?? null)
   }, [])
 
   useEffect(() => {
     let mounted = true
 
-    // onAuthStateChange fires INITIAL_SESSION exactly once on subscribe —
-    // use it as the single source of truth for both initial load and changes.
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[auth] event:', event, 'hasSession:', !!newSession)
       if (!mounted) return
+
       setSession(newSession)
-      try {
-        if (newSession?.user) {
-          await loadProfile(newSession.user.id)
-        } else {
-          setProfile(null)
-        }
-      } catch (err) {
-        console.error('[auth] handler failed:', err)
-      } finally {
-        if (event === 'INITIAL_SESSION') setLoading(false)
+
+      if (newSession?.user) {
+        // Load profile asynchronously without blocking - if it fails, that's okay
+        loadProfile(newSession.user.id).catch((err) => {
+          console.error('[auth] loadProfile background error:', err)
+          // Don't set profile to null, just log the error
+        })
+      } else {
+        setProfile(null)
+      }
+
+      // Mark loading complete immediately after INITIAL_SESSION
+      if (event === 'INITIAL_SESSION') {
+        console.log('[auth] INITIAL_SESSION complete, loading = false')
+        setLoading(false)
       }
     })
 
-    // Safety net: if INITIAL_SESSION never fires for some reason, unblock
-    // the UI after 3 seconds.
+    // Safety: unblock after 3 seconds if INITIAL_SESSION never fires
     const t = setTimeout(() => {
-      if (mounted) setLoading(false)
+      if (mounted) {
+        console.log('[auth] Safety timeout, setting loading = false')
+        setLoading(false)
+      }
     }, 3000)
 
     return () => {

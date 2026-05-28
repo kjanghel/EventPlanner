@@ -8,24 +8,28 @@ function formatINR(n: number) {
 }
 
 export function EventsList() {
-  const { profile, signOut } = useAuth()
+  const { profile, session, signOut } = useAuth()
   const [events, setEvents] = useState<EventTotals[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('[EventsList] useEffect mounted, calling listMyEvents')
     let isMounted = true
     const timeout = setTimeout(() => {
       if (isMounted) {
+        console.log('[EventsList] Request timed out')
         setError('Request timed out. Please refresh.')
         setEvents(null)
       }
     }, 8000)
 
-    listMyEvents()
+    listMyEvents(session)
       .then((e) => {
+        console.log('[EventsList] Got', e.length, 'events')
         if (isMounted) setEvents(e)
       })
       .catch((e) => {
+        console.error('[EventsList] Error:', e.message || e)
         if (isMounted) setError(e instanceof Error ? e.message : String(e))
       })
       .finally(() => clearTimeout(timeout))
@@ -34,7 +38,7 @@ export function EventsList() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [])
+  }, [session])
 
   return (
     <div className="min-h-full flex flex-col">

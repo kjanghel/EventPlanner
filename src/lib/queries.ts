@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { Session } from '@supabase/supabase-js'
 
 // =====================================================================
 // Types — kept in sync with supabase/migrations/0002_features.sql
@@ -88,13 +89,33 @@ export type UpcomingPayment = {
 // Events
 // =====================================================================
 
-export async function listMyEvents(): Promise<EventTotals[]> {
-  const { data, error } = await supabase
-    .from('event_totals')
-    .select('*')
-    .order('event_date', { ascending: true, nullsFirst: false })
-  if (error) throw error
-  return (data ?? []) as EventTotals[]
+export async function listMyEvents(session: Session | null): Promise<EventTotals[]> {
+  console.log('[queries] listMyEvents called with session:', !!session)
+  try {
+    if (!session) {
+      throw new Error('No session - user not authenticated')
+    }
+
+    console.log('[queries] Session OK, querying event_totals...')
+    const startQuery = Date.now()
+
+    const { data, error } = await supabase
+      .from('event_totals')
+      .select('*')
+      .order('event_date', { ascending: true, nullsFirst: false })
+
+    const queryTime = Date.now() - startQuery
+    console.log('[queries] Query took', queryTime, 'ms:', {
+      dataLength: Array.isArray(data) ? data.length : null,
+      error: error?.message,
+    })
+
+    if (error) throw error
+    return (data ?? []) as EventTotals[]
+  } catch (err) {
+    console.error('[queries] listMyEvents error:', err)
+    throw err
+  }
 }
 
 export async function getEvent(id: string): Promise<EventTotals | null> {
