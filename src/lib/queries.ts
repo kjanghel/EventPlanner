@@ -196,10 +196,7 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('events')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  const { error } = await supabase.from('events').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -272,11 +269,17 @@ export async function updatePerson(
 }
 
 export async function deletePerson(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('people')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  const { error } = await supabase.from('people').delete().eq('id', id)
+  if (error) {
+    // 23503 = foreign_key_violation. Surfaced when the person is still
+    // referenced by transactions or scheduled_payments (ON DELETE RESTRICT).
+    if ((error as { code?: string }).code === '23503') {
+      throw new Error(
+        'This person is on at least one transaction or scheduled payment. Remove or reassign those first.'
+      )
+    }
+    throw error
+  }
 }
 
 // =====================================================================
@@ -359,10 +362,7 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('categories')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  const { error } = await supabase.from('categories').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -462,10 +462,7 @@ export async function createTransaction(input: {
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('transactions')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -602,10 +599,7 @@ export async function markScheduledAsPaid(
 }
 
 export async function deleteScheduledPayment(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('scheduled_payments')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  const { error } = await supabase.from('scheduled_payments').delete().eq('id', id)
   if (error) throw error
 }
 
