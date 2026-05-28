@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { listCategories, type CategoryTotals, deleteCategory } from '../../lib/queries'
 import { CategoryFormSheet } from './CategoryFormSheet'
 
@@ -68,11 +68,17 @@ export function CategoriesList() {
       <ul className="space-y-2">
         {categories?.map((cat) => (
           <li key={cat.id}>
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <Link
+              to={`/events/${eventId}/budget/${cat.id}`}
+              className="block bg-white rounded-lg border border-slate-200 p-4 hover:border-slate-300"
+            >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">{cat.name}</h3>
                 <button
-                  onClick={() => handleDelete(cat.id)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleDelete(cat.id)
+                  }}
                   className="text-xs text-red-600 hover:text-red-700"
                 >
                   ✕
@@ -93,7 +99,7 @@ export function CategoriesList() {
                   <dd className="font-mono">₹{formatINR(cat.paid_total)}</dd>
                 </div>
               </dl>
-            </div>
+            </Link>
           </li>
         ))}
       </ul>

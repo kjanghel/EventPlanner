@@ -218,6 +218,16 @@ export async function listCategories(eventId: string): Promise<CategoryTotals[]>
   return (data ?? []) as CategoryTotals[]
 }
 
+export async function getCategoryTotals(categoryId: string): Promise<CategoryTotals | null> {
+  const { data, error } = await supabase
+    .from('category_totals')
+    .select('*')
+    .eq('id', categoryId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as CategoryTotals | null) ?? null
+}
+
 export async function createCategory(eventId: string, input: {
   name: string
   planned_amount?: number | null
@@ -276,6 +286,142 @@ export async function updateCategory(
 export async function deleteCategory(id: string): Promise<void> {
   const { error } = await supabase
     .from('categories')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+// =====================================================================
+// Transactions
+// =====================================================================
+
+export async function listTransactions(categoryId: string): Promise<Transaction[]> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('category_id', categoryId)
+    .order('txn_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as Transaction[]
+}
+
+export async function createTransaction(input: {
+  event_id: string
+  category_id: string
+  person_id: string | null
+  amount: number
+  txn_date?: string
+  note?: string
+  from_scheduled_id?: string
+}): Promise<Transaction> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      event_id: input.event_id,
+      category_id: input.category_id,
+      person_id: input.person_id,
+      amount: input.amount,
+      txn_date: input.txn_date ?? new Date().toISOString().split('T')[0],
+      note: input.note ?? null,
+      from_scheduled_id: input.from_scheduled_id ?? null,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as Transaction
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('transactions')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+// =====================================================================
+// Scheduled Payments
+// =====================================================================
+
+export async function listScheduledPayments(categoryId: string): Promise<ScheduledPayment[]> {
+  const { data, error } = await supabase
+    .from('scheduled_payments')
+    .select('*')
+    .eq('category_id', categoryId)
+    .order('due_date')
+  if (error) throw error
+  return (data ?? []) as ScheduledPayment[]
+}
+
+export async function createScheduledPayment(input: {
+  event_id: string
+  category_id: string
+  due_date: string
+  expected_amount: number
+  note?: string
+}): Promise<ScheduledPayment> {
+  const { data, error } = await supabase
+    .from('scheduled_payments')
+    .insert({
+      event_id: input.event_id,
+      category_id: input.category_id,
+      due_date: input.due_date,
+      expected_amount: input.expected_amount,
+      note: input.note ?? null,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as ScheduledPayment
+}
+
+export async function markScheduledAsPaid(
+  scheduledId: string,
+  txn: { event_id: string; person_id: string | null; amount?: number; note?: string }
+): Promise<{ scheduled: ScheduledPayment; transaction: Transaction }> {
+  const { data: scheduled, error: schedErr } = await supabase
+    .from('scheduled_payments')
+    .select('*')
+    .eq('id', scheduledId)
+    .maybeSingle()
+  if (schedErr || !scheduled) throw new Error('Scheduled payment not found')
+
+  const paidAmount = txn.amount ?? scheduled.expected_amount
+  if (paidAmount <= 0) throw new Error('Amount must be greater than 0')
+
+  const transaction = await createTransaction({
+    event_id: txn.event_id,
+    category_id: scheduled.category_id,
+    person_id: txn.person_id,
+    amount: paidAmount,
+    note: txn.note,
+    from_scheduled_id: scheduledId,
+  })
+
+  // Partial payment: leave pending, reduce expected by what was paid so the
+  // remaining shows up in upcoming lists. Full/over: mark paid.
+  const updates =
+    paidAmount < scheduled.expected_amount
+      ? { expected_amount: scheduled.expected_amount - paidAmount }
+      : { status: 'paid', paid_transaction_id: transaction.id }
+
+  const { data: updatedScheduled, error: updateErr } = await supabase
+    .from('scheduled_payments')
+    .update(updates)
+    .eq('id', scheduledId)
+    .select('*')
+    .single()
+  if (updateErr) throw updateErr
+
+  return {
+    scheduled: updatedScheduled as ScheduledPayment,
+    transaction,
+  }
+}
+
+export async function deleteScheduledPayment(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('scheduled_payments')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw error

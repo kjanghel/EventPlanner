@@ -5,6 +5,7 @@ import { NewEventSheet } from './components/events/NewEventSheet'
 import { EventHome } from './components/events/EventHome'
 import { PlaceholderTab } from './components/events/EventHome'
 import { CategoriesList } from './components/categories/CategoriesList'
+import { CategoryDetail } from './components/categories/CategoryDetail'
 import { PeopleList } from './components/people/PeopleList'
 import { AuthGate } from './components/layout/AuthGate'
 import { useAuth } from './lib/auth'
@@ -58,6 +59,7 @@ export default function App() {
           }
         >
           <Route path="summary" element={<PlaceholderTab name="Summary" />} />
+          <Route path="budget/:catId" element={<CategoryDetail />} />
           <Route path="budget" element={<CategoriesList />} />
           <Route path="upcoming" element={<PlaceholderTab name="Upcoming" />} />
           <Route path="people" element={<PeopleList />} />
