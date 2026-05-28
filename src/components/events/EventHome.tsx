@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
 import { getEvent, type EventTotals } from '../../lib/queries'
+import { supabase } from '../../lib/supabase'
 import { QuickAddFab } from '../quickadd/QuickAddFab'
 
 const tabs = [
@@ -17,6 +18,7 @@ export function EventHome() {
   const [event, setEvent] = useState<EventTotals | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -40,6 +42,36 @@ export function EventHome() {
     return () => {
       isMounted = false
       clearTimeout(timeout)
+    }
+  }, [id])
+
+  // Realtime: subscribe to changes for this event. Coalesce bursts with a
+  // 300ms debounce, then bump refreshTick (tabs refetch) + re-pull totals.
+  useEffect(() => {
+    if (!id) return
+
+    const bump = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        setRefreshTick((t) => t + 1)
+        getEvent(id).then(setEvent).catch(() => {})
+      }, 300)
+    }
+
+    const eventFilter = `event_id=eq.${id}`
+    const channel = supabase
+      .channel(`event:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: eventFilter }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scheduled_payments', filter: eventFilter }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories', filter: eventFilter }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'people', filter: eventFilter }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members', filter: eventFilter }, bump)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${id}` }, bump)
+      .subscribe()
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      supabase.removeChannel(channel)
     }
   }, [id])
 
