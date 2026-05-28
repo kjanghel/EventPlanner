@@ -3,9 +3,10 @@ import { SignIn } from './components/SignIn'
 import { EventsList } from './components/events/EventsList'
 import { NewEventSheet } from './components/events/NewEventSheet'
 import { EventHome } from './components/events/EventHome'
-import { PlaceholderTab } from './components/events/EventHome'
+import { EventSummary } from './components/events/EventSummary'
 import { CategoriesList } from './components/categories/CategoriesList'
 import { CategoryDetail } from './components/categories/CategoryDetail'
+import { UpcomingList } from './components/upcoming/UpcomingList'
 import { PeopleList } from './components/people/PeopleList'
 import { AuthGate } from './components/layout/AuthGate'
 import { useAuth } from './lib/auth'
@@ -58,10 +59,10 @@ export default function App() {
             </AuthGate>
           }
         >
-          <Route path="summary" element={<PlaceholderTab name="Summary" />} />
+          <Route path="summary" element={<EventSummary />} />
           <Route path="budget/:catId" element={<CategoryDetail />} />
           <Route path="budget" element={<CategoriesList />} />
-          <Route path="upcoming" element={<PlaceholderTab name="Upcoming" />} />
+          <Route path="upcoming" element={<UpcomingList />} />
           <Route path="people" element={<PeopleList />} />
           <Route index element={<Navigate to="summary" replace />} />
         </Route>

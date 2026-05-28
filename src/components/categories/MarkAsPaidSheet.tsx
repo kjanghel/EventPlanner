@@ -11,6 +11,7 @@ interface MarkAsPaidSheetProps {
   eventId: string
   scheduledId: string
   expectedAmount: number
+  expectedPayerId?: string | null
   onSuccess: (result: { scheduled: ScheduledPayment; transaction: Transaction }) => void
   onClose: () => void
 }
@@ -19,11 +20,12 @@ export function MarkAsPaidSheet({
   eventId,
   scheduledId,
   expectedAmount,
+  expectedPayerId,
   onSuccess,
   onClose,
 }: MarkAsPaidSheetProps) {
   const [people, setPeople] = useState<Person[]>([])
-  const [personId, setPersonId] = useState<string>('')
+  const [personId, setPersonId] = useState<string>(expectedPayerId ?? '')
   const [amount, setAmount] = useState(String(expectedAmount))
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)

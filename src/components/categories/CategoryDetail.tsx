@@ -182,12 +182,17 @@ export function CategoryDetail() {
           <ul className="space-y-2">
             {scheduled
               .filter((s) => s.status !== 'cancelled')
-              .map((sp) => (
+              .map((sp) => {
+                const payer = sp.expected_payer_id ? peopleById.get(sp.expected_payer_id) : null
+                return (
                 <li key={sp.id}>
                   <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-3 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">₹{formatINR(sp.expected_amount)}</p>
-                      <p className="text-xs text-slate-500">{formatDate(sp.due_date)}</p>
+                      <p className="text-xs text-slate-500">
+                        {formatDate(sp.due_date)}
+                        {payer && <> · {payer}</>}
+                      </p>
                       {sp.note && <p className="text-xs text-slate-500 mt-0.5 truncate">{sp.note}</p>}
                       {sp.status === 'paid' && <p className="text-xs text-green-600 font-medium mt-0.5">Paid</p>}
                     </div>
@@ -209,7 +214,8 @@ export function CategoryDetail() {
                     </div>
                   </div>
                 </li>
-              ))}
+                )
+              })}
           </ul>
         )}
         {!showScheduledForm && (
@@ -244,6 +250,7 @@ export function CategoryDetail() {
           eventId={eventId!}
           scheduledId={markPaidFor.id}
           expectedAmount={markPaidFor.expected_amount}
+          expectedPayerId={markPaidFor.expected_payer_id}
           onSuccess={(result) => {
             setScheduled((prev) =>
               prev?.map((sp) => (sp.id === markPaidFor.id ? result.scheduled : sp)) ?? null

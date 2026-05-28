@@ -71,6 +71,7 @@ export type ScheduledPayment = {
   expected_amount: number
   status: 'pending' | 'paid' | 'cancelled'
   paid_transaction_id: string | null
+  expected_payer_id: string | null
   note: string | null
 }
 
@@ -82,7 +83,17 @@ export type UpcomingPayment = {
   event_name: string
   due_date: string
   expected_amount: number
+  expected_payer_id: string | null
+  expected_payer_name: string | null
   note: string | null
+}
+
+export type PersonTotals = {
+  person_id: string
+  event_id: string
+  name: string
+  phone_e164: string | null
+  paid_total: number
 }
 
 // =====================================================================
@@ -358,6 +369,7 @@ export async function createScheduledPayment(input: {
   category_id: string
   due_date: string
   expected_amount: number
+  expected_payer_id?: string | null
   note?: string
 }): Promise<ScheduledPayment> {
   const { data, error } = await supabase
@@ -367,6 +379,7 @@ export async function createScheduledPayment(input: {
       category_id: input.category_id,
       due_date: input.due_date,
       expected_amount: input.expected_amount,
+      expected_payer_id: input.expected_payer_id ?? null,
       note: input.note ?? null,
     })
     .select('*')
@@ -425,4 +438,54 @@ export async function deleteScheduledPayment(id: string): Promise<void> {
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw error
+}
+
+// =====================================================================
+// Event-wide queries (Summary / Upcoming tabs)
+// =====================================================================
+
+export async function listEventUpcoming(eventId: string): Promise<UpcomingPayment[]> {
+  const { data, error } = await supabase
+    .from('scheduled_payments')
+    .select(
+      'id, event_id, category_id, due_date, expected_amount, expected_payer_id, note, categories(name), events(name), people:expected_payer_id(name)'
+    )
+    .eq('event_id', eventId)
+    .eq('status', 'pending')
+    .order('due_date', { ascending: true })
+  if (error) throw error
+  type Row = {
+    id: string
+    event_id: string
+    category_id: string
+    due_date: string
+    expected_amount: number
+    expected_payer_id: string | null
+    note: string | null
+    categories: { name: string } | null
+    events: { name: string } | null
+    people: { name: string } | null
+  }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    event_id: r.event_id,
+    category_id: r.category_id,
+    category_name: r.categories?.name ?? '',
+    event_name: r.events?.name ?? '',
+    due_date: r.due_date,
+    expected_amount: r.expected_amount,
+    expected_payer_id: r.expected_payer_id,
+    expected_payer_name: r.people?.name ?? null,
+    note: r.note,
+  }))
+}
+
+export async function listPersonTotals(eventId: string): Promise<PersonTotals[]> {
+  const { data, error } = await supabase
+    .from('person_totals')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('paid_total', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as PersonTotals[]
 }

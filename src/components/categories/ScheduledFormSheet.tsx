@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createScheduledPayment, type ScheduledPayment } from '../../lib/queries'
+import { useEffect, useState } from 'react'
+import { createScheduledPayment, listPeople, type ScheduledPayment, type Person } from '../../lib/queries'
 
 interface ScheduledFormSheetProps {
   eventId: string
@@ -9,11 +9,17 @@ interface ScheduledFormSheetProps {
 }
 
 export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: ScheduledFormSheetProps) {
+  const [people, setPeople] = useState<Person[]>([])
   const [dueDate, setDueDate] = useState('')
   const [amount, setAmount] = useState('')
+  const [payerId, setPayerId] = useState<string>('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    listPeople(eventId).then(setPeople).catch(console.error)
+  }, [eventId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,6 +35,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
         category_id: categoryId,
         due_date: dueDate,
         expected_amount: parseFloat(amount),
+        expected_payer_id: payerId || null,
         note: note.trim() || undefined,
       })
       onAdded(sp)
@@ -61,6 +68,24 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
           placeholder="0"
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
         />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1">
+          Expected payer <span className="text-slate-400 font-normal">(optional)</span>
+        </label>
+        <select
+          value={payerId}
+          onChange={(e) => setPayerId(e.target.value)}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+        >
+          <option value="">No one assigned</option>
+          {people.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
