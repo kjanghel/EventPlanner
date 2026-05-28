@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { listCategories, type CategoryTotals, deleteCategory } from '../../lib/queries'
 import { CategoryFormSheet } from './CategoryFormSheet'
+import type { EventOutletContext } from '../events/EventHome'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -9,6 +10,7 @@ function formatINR(n: number) {
 
 export function CategoriesList() {
   const { id: eventId } = useParams<{ id: string }>()
+  const { refreshTick } = useOutletContext<EventOutletContext>()
   const [categories, setCategories] = useState<CategoryTotals[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -36,7 +38,7 @@ export function CategoriesList() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [eventId])
+  }, [eventId, refreshTick])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this category?')) return

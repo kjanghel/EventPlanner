@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
 import { getEvent, type EventTotals } from '../../lib/queries'
+import { QuickAddFab } from '../quickadd/QuickAddFab'
 
 const tabs = [
   { to: 'summary', label: 'Summary' },
@@ -9,10 +10,13 @@ const tabs = [
   { to: 'people', label: 'People' },
 ]
 
+export type EventOutletContext = { event: EventTotals | null; refreshTick: number }
+
 export function EventHome() {
   const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<EventTotals | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
 
   useEffect(() => {
     if (!id) return
@@ -40,7 +44,7 @@ export function EventHome() {
   }, [id])
 
   return (
-    <div className="min-h-full flex flex-col pb-16">
+    <div className="min-h-full flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))]">
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <Link to="/" className="text-sm text-slate-500">← Events</Link>
         <h1 className="text-base font-semibold truncate max-w-[60%]">
@@ -54,10 +58,21 @@ export function EventHome() {
       )}
 
       <main className="flex-1 p-4 max-w-md mx-auto w-full">
-        <Outlet context={{ event }} />
+        <Outlet context={{ event, refreshTick } satisfies EventOutletContext} />
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200">
+      {id && (
+        <QuickAddFab
+          eventId={id}
+          onSaved={() => {
+            setRefreshTick((t) => t + 1)
+            // Pull fresh event totals so the header summary is up to date.
+            getEvent(id).then(setEvent).catch(() => {})
+          }}
+        />
+      )}
+
+      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
         <ul className="grid grid-cols-4 max-w-md mx-auto">
           {tabs.map((t) => (
             <li key={t.to}>

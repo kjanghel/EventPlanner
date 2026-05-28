@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { listEventUpcoming, type UpcomingPayment } from '../../lib/queries'
 import { MarkAsPaidSheet } from '../categories/MarkAsPaidSheet'
+import type { EventOutletContext } from '../events/EventHome'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -38,6 +39,7 @@ function urgencyLabel(diff: number) {
 
 export function UpcomingList() {
   const { id: eventId } = useParams<{ id: string }>()
+  const { refreshTick } = useOutletContext<EventOutletContext>()
   const [items, setItems] = useState<UpcomingPayment[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [markPaidFor, setMarkPaidFor] = useState<UpcomingPayment | null>(null)
@@ -48,7 +50,7 @@ export function UpcomingList() {
     listEventUpcoming(eventId)
       .then(setItems)
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }, [eventId])
+  }, [eventId, refreshTick])
 
   if (error) {
     return <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>

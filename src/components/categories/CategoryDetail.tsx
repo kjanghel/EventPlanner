@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
+import type { EventOutletContext } from '../events/EventHome'
 import {
   listTransactions,
   listScheduledPayments,
@@ -29,6 +30,7 @@ function formatDate(dateStr: string) {
 
 export function CategoryDetail() {
   const { id: eventId, catId } = useParams<{ id: string; catId: string }>()
+  const { refreshTick } = useOutletContext<EventOutletContext>()
   const [category, setCategory] = useState<CategoryTotals | null>(null)
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [scheduled, setScheduled] = useState<ScheduledPayment[] | null>(null)
@@ -47,7 +49,7 @@ export function CategoryDetail() {
       listScheduledPayments(catId).then(setScheduled),
       listPeople(eventId).then(setPeople),
     ]).catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }, [catId, eventId])
+  }, [catId, eventId, refreshTick])
 
   const peopleById = useMemo(() => {
     const m = new Map<string, string>()

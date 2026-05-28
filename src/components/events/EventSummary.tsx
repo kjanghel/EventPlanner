@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useOutletContext, useParams } from 'react-router-dom'
 import {
   getEvent,
   listPersonTotals,
   type EventTotals,
   type PersonTotals,
 } from '../../lib/queries'
+import type { EventOutletContext } from './EventHome'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -13,6 +14,7 @@ function formatINR(n: number) {
 
 export function EventSummary() {
   const { id: eventId } = useParams<{ id: string }>()
+  const { refreshTick } = useOutletContext<EventOutletContext>()
   const [event, setEvent] = useState<EventTotals | null>(null)
   const [people, setPeople] = useState<PersonTotals[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +26,7 @@ export function EventSummary() {
       getEvent(eventId).then(setEvent),
       listPersonTotals(eventId).then(setPeople),
     ]).catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }, [eventId])
+  }, [eventId, refreshTick])
 
   if (error) {
     return <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>
