@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
+import { Pencil } from 'lucide-react'
 import type { EventOutletContext } from '../events/EventHome'
 import {
   listTransactions,
   listScheduledPayments,
   listPeople,
   getCategoryTotals,
+  updateCategory,
   deleteTransaction,
   deleteScheduledPayment,
   type Transaction,
@@ -40,6 +42,12 @@ export function CategoryDetail() {
   const [showTxnForm, setShowTxnForm] = useState(false)
   const [showScheduledForm, setShowScheduledForm] = useState(false)
   const [markPaidFor, setMarkPaidFor] = useState<ScheduledPayment | null>(null)
+  const [editingCategory, setEditingCategory] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPlanned, setEditPlanned] = useState('')
+  const [editConfirmed, setEditConfirmed] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [savingCategory, setSavingCategory] = useState(false)
 
   useEffect(() => {
     if (!catId || !eventId) return
@@ -83,39 +91,152 @@ export function CategoryDetail() {
       ? category.confirmed_amount - category.paid_total
       : null
 
+  const startEditCategory = () => {
+    if (!category) return
+    setEditName(category.name)
+    setEditPlanned(category.planned_amount != null ? String(category.planned_amount) : '')
+    setEditConfirmed(category.confirmed_amount != null ? String(category.confirmed_amount) : '')
+    setEditNote(category.note ?? '')
+    setEditingCategory(true)
+  }
+
+  const saveEditCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!catId || !editName.trim()) return
+    setSavingCategory(true)
+    setError(null)
+    try {
+      const updated = await updateCategory(catId, {
+        name: editName,
+        planned_amount: editPlanned.trim() ? parseFloat(editPlanned) : null,
+        confirmed_amount: editConfirmed.trim() ? parseFloat(editConfirmed) : null,
+        note: editNote.trim() ? editNote : null,
+      })
+      // Merge update into current totals row.
+      setCategory((prev) => (prev ? { ...prev, ...updated } : prev))
+      setEditingCategory(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save')
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
 
       {/* Category header */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold">{category?.name ?? 'Category'}</h2>
-          <Link to={`/events/${eventId}/budget`} className="text-xs text-slate-500">
-            ← Budget
-          </Link>
+        <div className="flex items-center justify-between mb-3 gap-2">
+          {editingCategory ? (
+            <span className="text-xs text-slate-500">Editing category</span>
+          ) : (
+            <h2 className="text-base font-semibold truncate">{category?.name ?? 'Category'}</h2>
+          )}
+          <div className="flex items-center gap-3 shrink-0">
+            {!editingCategory && category && (
+              <button
+                onClick={startEditCategory}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Edit category"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            <Link to={`/events/${eventId}/budget`} className="text-xs text-slate-500">
+              ← Budget
+            </Link>
+          </div>
         </div>
-        {category?.note && <p className="text-xs text-slate-500 mb-3">{category.note}</p>}
-        <dl className="grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <dt className="text-slate-400">Planned</dt>
-            <dd className="font-mono">₹{formatINR(category?.planned_amount ?? 0)}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-400">Confirmed</dt>
-            <dd className="font-mono">₹{formatINR(category?.confirmed_amount ?? 0)}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-400">Paid</dt>
-            <dd className="font-mono">₹{formatINR(category?.paid_total ?? 0)}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-400">{remaining != null && remaining < 0 ? 'Over' : 'Remaining'}</dt>
-            <dd className="font-mono">
-              {remaining != null ? `₹${formatINR(Math.abs(remaining))}` : '—'}
-            </dd>
-          </div>
-        </dl>
+
+        {!editingCategory ? (
+          <>
+            {category?.note && <p className="text-xs text-slate-500 mb-3">{category.note}</p>}
+            <dl className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <dt className="text-slate-400">Planned</dt>
+                <dd className="font-mono">₹{formatINR(category?.planned_amount ?? 0)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Confirmed</dt>
+                <dd className="font-mono">₹{formatINR(category?.confirmed_amount ?? 0)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Paid</dt>
+                <dd className="font-mono">₹{formatINR(category?.paid_total ?? 0)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">
+                  {remaining != null && remaining < 0 ? 'Over' : 'Remaining'}
+                </dt>
+                <dd className="font-mono">
+                  {remaining != null ? `₹${formatINR(Math.abs(remaining))}` : '—'}
+                </dd>
+              </div>
+            </dl>
+          </>
+        ) : (
+          <form onSubmit={saveEditCategory} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+              <input
+                autoFocus
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Planned (₹)</label>
+                <input
+                  type="number"
+                  value={editPlanned}
+                  onChange={(e) => setEditPlanned(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Confirmed (₹)</label>
+                <input
+                  type="number"
+                  value={editConfirmed}
+                  onChange={(e) => setEditConfirmed(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Note <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={savingCategory || !editName.trim()}
+                className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+              >
+                {savingCategory ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingCategory(false)}
+                className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Transactions */}

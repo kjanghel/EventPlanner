@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Pencil } from 'lucide-react'
 import {
   listEventMembers,
   listEventInvites,
@@ -8,6 +9,7 @@ import {
   cancelInvite,
   removeMember,
   deleteEvent,
+  updateEvent,
   getEvent,
   type EventMember,
   type EventInvite,
@@ -26,6 +28,10 @@ export function EventSettings() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [editingEvent, setEditingEvent] = useState(false)
+  const [eventName, setEventName] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [savingEvent, setSavingEvent] = useState(false)
 
   useEffect(() => {
     if (!eventId) return
@@ -128,6 +134,34 @@ export function EventSettings() {
     }
   }
 
+  const startEditEvent = () => {
+    if (!event) return
+    setEventName(event.name)
+    setEventDate(event.event_date ?? '')
+    setEditingEvent(true)
+  }
+
+  const saveEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!eventId || !eventName.trim()) return
+    setError(null)
+    setSavingEvent(true)
+    try {
+      await updateEvent(eventId, {
+        name: eventName,
+        event_date: eventDate || null,
+      })
+      // Refresh totals view so header reflects new name/date.
+      const refreshed = await getEvent(eventId)
+      setEvent(refreshed)
+      setEditingEvent(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save')
+    } finally {
+      setSavingEvent(false)
+    }
+  }
+
   const handleDeleteEvent = async () => {
     if (!eventId) return
     const name = event?.name ?? 'this event'
@@ -157,6 +191,75 @@ export function EventSettings() {
       <main className="flex-1 px-4 pb-10 pt-4 max-w-md mx-auto w-full space-y-4">
         {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
         {info && <p className="text-xs text-green-800 bg-green-50 rounded-lg p-2">{info}</p>}
+
+        {/* Event details (owner only) */}
+        {isOwner && event && (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Event details</h2>
+              {!editingEvent && (
+                <button
+                  onClick={startEditEvent}
+                  className="text-slate-400 hover:text-slate-700"
+                  aria-label="Edit event"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {!editingEvent ? (
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-xs text-slate-400">Name</dt>
+                  <dd className="font-medium truncate">{event.name}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-xs text-slate-400">Date</dt>
+                  <dd className="font-mono text-xs">{event.event_date ?? '—'}</dd>
+                </div>
+              </dl>
+            ) : (
+              <form onSubmit={saveEditEvent} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                  <input
+                    autoFocus
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Date <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={savingEvent || !eventName.trim()}
+                    className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+                  >
+                    {savingEvent ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingEvent(false)}
+                    className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+        )}
 
         {/* Members */}
         <section className="bg-white rounded-2xl border border-slate-200 p-4">

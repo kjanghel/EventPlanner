@@ -178,6 +178,23 @@ export async function updateMyProfile(input: {
   if (error) throw error
 }
 
+export async function updateEvent(
+  id: string,
+  input: { name?: string; event_date?: string | null }
+): Promise<Event> {
+  const updates: Record<string, unknown> = {}
+  if (input.name !== undefined) updates.name = input.name.trim()
+  if (input.event_date !== undefined) updates.event_date = input.event_date
+  const { data, error } = await supabase
+    .from('events')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as Event
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   const { error } = await supabase
     .from('events')
