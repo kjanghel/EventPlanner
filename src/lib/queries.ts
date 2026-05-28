@@ -460,6 +460,51 @@ export async function deleteScheduledPayment(id: string): Promise<void> {
 // Event-wide queries (Summary / Upcoming tabs)
 // =====================================================================
 
+// All pending scheduled payments visible to the current user, due on or
+// before today + daysForward. Used by the landing-page reminder card to
+// surface overdue + soon-due items across all events the user is in.
+export async function listAllUpcoming(daysForward = 7): Promise<UpcomingPayment[]> {
+  const cutoff = new Date()
+  cutoff.setHours(0, 0, 0, 0)
+  cutoff.setDate(cutoff.getDate() + daysForward)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('scheduled_payments')
+    .select(
+      'id, event_id, category_id, due_date, expected_amount, expected_payer_id, note, categories(name), events(name), people:expected_payer_id(name)'
+    )
+    .eq('status', 'pending')
+    .lte('due_date', cutoffStr)
+    .order('due_date', { ascending: true })
+    .limit(50)
+  if (error) throw error
+  type Row = {
+    id: string
+    event_id: string
+    category_id: string
+    due_date: string
+    expected_amount: number
+    expected_payer_id: string | null
+    note: string | null
+    categories: { name: string } | null
+    events: { name: string } | null
+    people: { name: string } | null
+  }
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    event_id: r.event_id,
+    category_id: r.category_id,
+    category_name: r.categories?.name ?? '',
+    event_name: r.events?.name ?? '',
+    due_date: r.due_date,
+    expected_amount: r.expected_amount,
+    expected_payer_id: r.expected_payer_id,
+    expected_payer_name: r.people?.name ?? null,
+    note: r.note,
+  }))
+}
+
 export async function listEventUpcoming(eventId: string): Promise<UpcomingPayment[]> {
   const { data, error } = await supabase
     .from('scheduled_payments')

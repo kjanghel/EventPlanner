@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listMyEvents, type EventTotals } from '../../lib/queries'
 import { useAuth } from '../../lib/auth'
+import { UpcomingBanner } from './UpcomingBanner'
 
 function formatINR(n: number) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
@@ -117,6 +118,8 @@ export function EventsList() {
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">Your events at a glance.</p>
         </section>
+
+        <UpcomingBanner />
 
         {error && (
           <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2 mb-3">{error}</p>
