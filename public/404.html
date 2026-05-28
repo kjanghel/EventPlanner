@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      // Store the path that caused 404, then redirect to index.html
+      // React Router will handle the path client-side
+      sessionStorage.redirect = location.pathname + location.search + location.hash
+      location.href = '/EventPlanner/index.html'
+    </script>
+  </head>
+</html>

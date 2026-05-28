@@ -35,6 +35,8 @@ export function PhoneCapture() {
         return
       }
       await refreshProfile()
+      // Wait a tick for the context to update, then navigate
+      await new Promise((resolve) => setTimeout(resolve, 100))
       navigate('/events', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')

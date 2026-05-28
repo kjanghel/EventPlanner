@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { SignIn } from './components/SignIn'
 import { PhoneCapture } from './components/PhoneCapture'
 import { EventsList } from './components/events/EventsList'
@@ -26,10 +27,23 @@ function RootLayout() {
   return <Navigate to="/events" replace />
 }
 
+function RouteGuard({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const redirect = sessionStorage.redirect
+    if (redirect) {
+      delete sessionStorage.redirect
+      navigate(redirect, { replace: true })
+    }
+  }, [navigate])
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <BrowserRouter basename="/EventPlanner">
-      <Routes>
+      <RouteGuard>
+        <Routes>
         <Route path="/" element={<RootLayout />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/profile/phone" element={<PhoneCapture />} />
@@ -68,7 +82,8 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </RouteGuard>
     </BrowserRouter>
   )
 }
