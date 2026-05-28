@@ -3,6 +3,7 @@ import { SignIn } from './components/SignIn'
 import { EventsList } from './components/events/EventsList'
 import { NewEventSheet } from './components/events/NewEventSheet'
 import { EventHome } from './components/events/EventHome'
+import { EventSettings } from './components/events/EventSettings'
 import { EventSummary } from './components/events/EventSummary'
 import { CategoriesList } from './components/categories/CategoriesList'
 import { CategoryDetail } from './components/categories/CategoryDetail'
@@ -47,6 +48,15 @@ export default function App() {
           element={
             <AuthGate>
               <NewEventSheet />
+            </AuthGate>
+          }
+        />
+
+        <Route
+          path="/events/:id/settings"
+          element={
+            <AuthGate>
+              <EventSettings />
             </AuthGate>
           }
         />

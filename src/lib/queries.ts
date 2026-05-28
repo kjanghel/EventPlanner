@@ -96,6 +96,22 @@ export type PersonTotals = {
   paid_total: number
 }
 
+export type EventMember = {
+  event_id: string
+  user_id: string
+  role: 'owner' | 'editor'
+  display_name: string | null
+  added_at: string
+}
+
+export type EventInvite = {
+  id: string
+  event_id: string
+  invited_email: string
+  status: 'pending' | 'accepted' | 'cancelled'
+  created_at: string
+}
+
 // =====================================================================
 // Events
 // =====================================================================
@@ -488,4 +504,97 @@ export async function listPersonTotals(eventId: string): Promise<PersonTotals[]>
     .order('paid_total', { ascending: false })
   if (error) throw error
   return (data ?? []) as PersonTotals[]
+}
+
+// =====================================================================
+// Members and invites (event sharing)
+// =====================================================================
+
+export async function listEventMembers(eventId: string): Promise<EventMember[]> {
+  // event_members.user_id and profiles.id both reference auth.users(id),
+  // so PostgREST can't auto-join. Fetch separately and stitch.
+  const { data: rows, error } = await supabase
+    .from('event_members')
+    .select('event_id, user_id, role, added_at')
+    .eq('event_id', eventId)
+    .is('deleted_at', null)
+    .order('added_at', { ascending: true })
+  if (error) throw error
+  const members = (rows ?? []) as Array<{
+    event_id: string
+    user_id: string
+    role: 'owner' | 'editor'
+    added_at: string
+  }>
+
+  const userIds = members.map((m) => m.user_id)
+  const nameById = new Map<string, string | null>()
+  if (userIds.length > 0) {
+    const { data: profs, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', userIds)
+    if (profErr) throw profErr
+    for (const p of (profs ?? []) as Array<{ id: string; display_name: string | null }>) {
+      nameById.set(p.id, p.display_name)
+    }
+  }
+
+  return members.map((m) => ({
+    event_id: m.event_id,
+    user_id: m.user_id,
+    role: m.role,
+    display_name: nameById.get(m.user_id) ?? null,
+    added_at: m.added_at,
+  }))
+}
+
+export async function listEventInvites(eventId: string): Promise<EventInvite[]> {
+  const { data, error } = await supabase
+    .from('event_invites')
+    .select('id, event_id, invited_email, status, created_at')
+    .eq('event_id', eventId)
+    .eq('status', 'pending')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as EventInvite[]
+}
+
+export async function inviteByEmail(eventId: string, email: string): Promise<EventInvite> {
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed) throw new Error('Email is required')
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user) throw new Error('Not signed in')
+
+  const { data, error } = await supabase
+    .from('event_invites')
+    .insert({
+      event_id: eventId,
+      invited_email: trimmed,
+      invited_by: user.user.id,
+    })
+    .select('id, event_id, invited_email, status, created_at')
+    .single()
+  if (error) throw error
+  return data as EventInvite
+}
+
+export async function cancelInvite(inviteId: string): Promise<void> {
+  const { error } = await supabase
+    .from('event_invites')
+    .update({ status: 'cancelled', deleted_at: new Date().toISOString() })
+    .eq('id', inviteId)
+  if (error) throw error
+}
+
+export async function removeMember(eventId: string, userId: string): Promise<void> {
+  // event_members has a DELETE policy (owner-or-self) but no UPDATE policy,
+  // so a soft-delete update would silently affect zero rows under RLS.
+  const { error } = await supabase
+    .from('event_members')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('user_id', userId)
+  if (error) throw error
 }

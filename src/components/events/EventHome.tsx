@@ -50,7 +50,7 @@ export function EventHome() {
         <h1 className="text-base font-semibold truncate max-w-[60%]">
           {event?.name ?? 'Event'}
         </h1>
-        <Link to="settings" className="text-sm text-slate-500">⚙</Link>
+        <Link to={`/events/${id}/settings`} className="text-sm text-slate-500">⚙</Link>
       </header>
 
       {error && (

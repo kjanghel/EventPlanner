@@ -91,10 +91,8 @@ export function EventsList() {
                   <p className="text-sm font-medium truncate">
                     {profile?.display_name ?? 'Account'}
                   </p>
-                  {(email || profile?.phone_e164) && (
-                    <p className="text-xs text-slate-500 truncate">
-                      {email ?? profile?.phone_e164}
-                    </p>
+                  {email && (
+                    <p className="text-xs text-slate-500 truncate">{email}</p>
                   )}
                 </div>
                 <button

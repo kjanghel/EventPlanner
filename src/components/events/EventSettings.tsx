@@ -1,0 +1,234 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  listEventMembers,
+  listEventInvites,
+  inviteByEmail,
+  cancelInvite,
+  removeMember,
+  getEvent,
+  type EventMember,
+  type EventInvite,
+  type EventTotals,
+} from '../../lib/queries'
+import { useAuth } from '../../lib/auth'
+
+export function EventSettings() {
+  const { id: eventId } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [event, setEvent] = useState<EventTotals | null>(null)
+  const [members, setMembers] = useState<EventMember[] | null>(null)
+  const [invites, setInvites] = useState<EventInvite[] | null>(null)
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!eventId) return
+    setError(null)
+    Promise.all([
+      getEvent(eventId).then(setEvent),
+      listEventMembers(eventId).then(setMembers),
+      listEventInvites(eventId).then(setInvites),
+    ]).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+  }, [eventId])
+
+  // The current user's row in event_members (if any) determines what they can do.
+  const myRow = members?.find((m) => m.user_id === user?.id)
+  const isOwner = myRow?.role === 'owner'
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!eventId) return
+    const trimmed = email.trim().toLowerCase()
+    if (!trimmed.includes('@')) {
+      setError('Enter a valid email')
+      return
+    }
+    if (members?.some((m) => m.display_name?.toLowerCase() === trimmed)) {
+      // Lightweight client-side dup hint (display name isn't email but is a heuristic).
+    }
+    if (invites?.some((i) => i.invited_email.toLowerCase() === trimmed)) {
+      setError('This email already has a pending invite.')
+      return
+    }
+    setError(null)
+    setInfo(null)
+    setBusy(true)
+    try {
+      const inv = await inviteByEmail(eventId, trimmed)
+      setInvites((prev) => [...(prev ?? []), inv])
+      setEmail('')
+      setInfo(`Invited ${inv.invited_email}. They'll join automatically next time they sign in.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not invite')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCancelInvite = async (id: string) => {
+    if (!confirm('Cancel this invite?')) return
+    try {
+      await cancelInvite(id)
+      setInvites((prev) => prev?.filter((i) => i.id !== id) ?? null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not cancel')
+    }
+  }
+
+  const handleRemoveMember = async (memberUserId: string) => {
+    if (!eventId) return
+    if (!confirm('Remove this member from the event?')) return
+    try {
+      await removeMember(eventId, memberUserId)
+      setMembers((prev) => prev?.filter((m) => m.user_id !== memberUserId) ?? null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove')
+    }
+  }
+
+  const handleLeave = async () => {
+    if (!eventId || !user) return
+    if (!confirm('Leave this event? You will lose access.')) return
+    try {
+      await removeMember(eventId, user.id)
+      navigate('/events', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not leave')
+    }
+  }
+
+  return (
+    <div className="min-h-full flex flex-col bg-slate-50">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+          <Link to={`/events/${eventId}/summary`} className="text-sm text-slate-500">
+            ← Back
+          </Link>
+          <h1 className="text-base font-semibold tracking-tight truncate max-w-[60%]">
+            {event?.name ?? 'Settings'}
+          </h1>
+          <span className="w-12" />
+        </div>
+      </header>
+
+      <main className="flex-1 px-4 pb-10 pt-4 max-w-md mx-auto w-full space-y-4">
+        {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
+        {info && <p className="text-xs text-green-800 bg-green-50 rounded-lg p-2">{info}</p>}
+
+        {/* Members */}
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <h2 className="text-sm font-semibold mb-3">Members</h2>
+          {members === null ? (
+            <p className="text-xs text-slate-500">Loading…</p>
+          ) : members.length === 0 ? (
+            <p className="text-xs text-slate-500">No members yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {members.map((m) => (
+                <li
+                  key={m.user_id}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">
+                      {m.display_name ?? 'Unnamed'}
+                      {m.user_id === user?.id && (
+                        <span className="ml-1 text-xs text-slate-400">(you)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">{m.role}</p>
+                  </div>
+                  {isOwner && m.role !== 'owner' && (
+                    <button
+                      onClick={() => handleRemoveMember(m.user_id)}
+                      className="text-xs text-red-600 hover:text-red-700 ml-2"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Pending invites */}
+        {isOwner && (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h2 className="text-sm font-semibold mb-3">Pending invites</h2>
+            {invites === null ? (
+              <p className="text-xs text-slate-500">Loading…</p>
+            ) : invites.length === 0 ? (
+              <p className="text-xs text-slate-500">No pending invites.</p>
+            ) : (
+              <ul className="space-y-2">
+                {invites.map((inv) => (
+                  <li
+                    key={inv.id}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{inv.invited_email}</p>
+                      <p className="text-xs text-slate-500">Pending</p>
+                    </div>
+                    <button
+                      onClick={() => handleCancelInvite(inv.id)}
+                      className="text-xs text-red-600 hover:text-red-700 ml-2"
+                    >
+                      Cancel
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* Invite form */}
+        {isOwner && (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h2 className="text-sm font-semibold mb-3">Invite by email</h2>
+            <form onSubmit={handleInvite} className="space-y-3">
+              <div>
+                <input
+                  type="email"
+                  autoComplete="off"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="alice@gmail.com"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  They'll join automatically the next time they sign in with this email.
+                </p>
+              </div>
+              <button
+                type="submit"
+                disabled={busy || !email.trim()}
+                className="w-full bg-slate-900 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
+              >
+                {busy ? 'Inviting…' : 'Send invite'}
+              </button>
+            </form>
+          </section>
+        )}
+
+        {/* Leave event (non-owners) */}
+        {!isOwner && myRow && (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <button
+              onClick={handleLeave}
+              className="w-full text-sm text-red-600 font-medium py-2"
+            >
+              Leave event
+            </button>
+          </section>
+        )}
+      </main>
+    </div>
+  )
+}
