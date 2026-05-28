@@ -16,9 +16,27 @@ export function EventHome() {
 
   useEffect(() => {
     if (!id) return
+    let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setError('Request timed out. Please refresh.')
+        setEvent(null)
+      }
+    }, 8000)
+
     getEvent(id)
-      .then(setEvent)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .then((e) => {
+        if (isMounted) setEvent(e)
+      })
+      .catch((e) => {
+        if (isMounted) setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => clearTimeout(timeout))
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeout)
+    }
   }, [id])
 
   return (

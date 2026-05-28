@@ -11,9 +11,27 @@ export function PeopleList() {
 
   useEffect(() => {
     if (!eventId) return
+    let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setError('Request timed out. Please refresh.')
+        setPeople(null)
+      }
+    }, 8000)
+
     listPeople(eventId)
-      .then(setPeople)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .then((p) => {
+        if (isMounted) setPeople(p)
+      })
+      .catch((e) => {
+        if (isMounted) setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => clearTimeout(timeout))
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeout)
+    }
   }, [eventId])
 
   const handleDelete = async (id: string) => {

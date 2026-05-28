@@ -15,9 +15,27 @@ export function CategoriesList() {
 
   useEffect(() => {
     if (!eventId) return
+    let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setError('Request timed out. Please refresh.')
+        setCategories(null)
+      }
+    }, 8000)
+
     listCategories(eventId)
-      .then(setCategories)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .then((c) => {
+        if (isMounted) setCategories(c)
+      })
+      .catch((e) => {
+        if (isMounted) setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => clearTimeout(timeout))
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeout)
+    }
   }, [eventId])
 
   const handleDelete = async (id: string) => {

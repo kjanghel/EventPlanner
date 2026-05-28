@@ -13,9 +13,27 @@ export function EventsList() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setError('Request timed out. Please refresh.')
+        setEvents(null)
+      }
+    }, 8000)
+
     listMyEvents()
-      .then(setEvents)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .then((e) => {
+        if (isMounted) setEvents(e)
+      })
+      .catch((e) => {
+        if (isMounted) setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => clearTimeout(timeout))
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeout)
+    }
   }, [])
 
   return (

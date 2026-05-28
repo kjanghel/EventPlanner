@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
 const E164 = /^\+\d{8,15}$/
 
 export function PhoneCapture() {
+  const navigate = useNavigate()
   const { user, refreshProfile, signOut } = useAuth()
   const [displayName, setDisplayName] = useState(
     (user?.user_metadata?.full_name as string | undefined) ?? '',
@@ -22,16 +24,22 @@ export function PhoneCapture() {
     }
     if (!user) return
     setBusy(true)
-    const { error: upErr } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName.trim() || null, phone_e164: phone })
-      .eq('id', user.id)
-    setBusy(false)
-    if (upErr) {
-      setError(upErr.message)
-      return
+    try {
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .update({ display_name: displayName.trim() || null, phone_e164: phone })
+        .eq('id', user.id)
+      if (upErr) {
+        setError(upErr.message)
+        setBusy(false)
+        return
+      }
+      await refreshProfile()
+      navigate('/events', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
+      setBusy(false)
     }
-    await refreshProfile()
   }
 
   return (
