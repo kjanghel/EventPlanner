@@ -96,12 +96,19 @@ export function EventsList() {
                     <p className="text-xs text-slate-500 truncate">{email}</p>
                   )}
                 </div>
+                <Link
+                  to="/profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Edit profile
+                </Link>
                 <button
                   onClick={() => {
                     setMenuOpen(false)
                     void signOut().catch(console.error)
                   }}
-                  className="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-slate-50"
+                  className="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-slate-50 border-t border-slate-100"
                 >
                   Sign out
                 </button>
@@ -150,7 +157,7 @@ export function EventsList() {
         {events && events.length > 0 && (
           <ul className="space-y-3">
             {events.map((e) => {
-              const target = e.negotiated_total > 0 ? e.negotiated_total : e.planned_total
+              const target = e.confirmed_total > 0 ? e.confirmed_total : e.planned_total
               const pct =
                 target > 0 ? Math.min(100, Math.round((e.paid_total / target) * 100)) : 0
               return (
@@ -186,8 +193,8 @@ export function EventsList() {
                         <dd className="font-mono">₹{formatINR(e.planned_total)}</dd>
                       </div>
                       <div>
-                        <dt className="text-slate-400">Negotiated</dt>
-                        <dd className="font-mono">₹{formatINR(e.negotiated_total)}</dd>
+                        <dt className="text-slate-400">Confirmed</dt>
+                        <dd className="font-mono">₹{formatINR(e.confirmed_total)}</dd>
                       </div>
                       <div>
                         <dt className="text-slate-400">Paid</dt>

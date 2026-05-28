@@ -10,7 +10,7 @@ interface CategoryFormSheetProps {
 export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormSheetProps) {
   const [name, setName] = useState('')
   const [planned, setPlanned] = useState('')
-  const [negotiated, setNegotiated] = useState('')
+  const [confirmed, setConfirmed] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +24,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
       const data = await createCategory(eventId, {
         name,
         planned_amount: planned ? parseFloat(planned) : null,
-        negotiated_amount: negotiated ? parseFloat(negotiated) : null,
+        confirmed_amount: confirmed ? parseFloat(confirmed) : null,
         note: note.trim() || null,
       })
       onAdded({
@@ -63,11 +63,11 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Negotiated (₹)</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Confirmed (₹)</label>
           <input
             type="number"
-            value={negotiated}
-            onChange={(e) => setNegotiated(e.target.value)}
+            value={confirmed}
+            onChange={(e) => setConfirmed(e.target.value)}
             placeholder="0"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
           />

@@ -78,8 +78,8 @@ export function CategoryDetail() {
   }
 
   const remaining =
-    category && category.negotiated_amount != null
-      ? category.negotiated_amount - category.paid_total
+    category && category.confirmed_amount != null
+      ? category.confirmed_amount - category.paid_total
       : null
 
   return (
@@ -101,8 +101,8 @@ export function CategoryDetail() {
             <dd className="font-mono">₹{formatINR(category?.planned_amount ?? 0)}</dd>
           </div>
           <div>
-            <dt className="text-slate-400">Negotiated</dt>
-            <dd className="font-mono">₹{formatINR(category?.negotiated_amount ?? 0)}</dd>
+            <dt className="text-slate-400">Confirmed</dt>
+            <dd className="font-mono">₹{formatINR(category?.confirmed_amount ?? 0)}</dd>
           </div>
           <div>
             <dt className="text-slate-400">Paid</dt>

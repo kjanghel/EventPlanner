@@ -6,6 +6,7 @@ import {
   inviteByEmail,
   cancelInvite,
   removeMember,
+  deleteEvent,
   getEvent,
   type EventMember,
   type EventInvite,
@@ -98,6 +99,18 @@ export function EventSettings() {
       navigate('/events', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not leave')
+    }
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!eventId) return
+    const name = event?.name ?? 'this event'
+    if (!confirm(`Delete ${name}? This will remove it for everyone — members will lose access. This cannot be undone from the UI.`)) return
+    try {
+      await deleteEvent(eventId)
+      navigate('/events', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete event')
     }
   }
 
@@ -225,6 +238,24 @@ export function EventSettings() {
               className="w-full text-sm text-red-600 font-medium py-2"
             >
               Leave event
+            </button>
+          </section>
+        )}
+
+        {/* Danger zone (owner) */}
+        {isOwner && (
+          <section className="bg-white rounded-2xl border border-red-200 p-4">
+            <h2 className="text-sm font-semibold text-red-700 mb-1">Danger zone</h2>
+            <p className="text-xs text-slate-500 mb-3">
+              Deleting the event removes it for all members. Categories,
+              transactions, and scheduled payments stay in the database but
+              become inaccessible from the app.
+            </p>
+            <button
+              onClick={handleDeleteEvent}
+              className="w-full bg-red-600 text-white rounded-lg py-2 px-3 text-sm font-medium hover:bg-red-700"
+            >
+              Delete event
             </button>
           </section>
         )}

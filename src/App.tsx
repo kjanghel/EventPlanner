@@ -9,6 +9,7 @@ import { CategoriesList } from './components/categories/CategoriesList'
 import { CategoryDetail } from './components/categories/CategoryDetail'
 import { UpcomingList } from './components/upcoming/UpcomingList'
 import { PeopleList } from './components/people/PeopleList'
+import { ProfileSettings } from './components/profile/ProfileSettings'
 import { AuthGate } from './components/layout/AuthGate'
 import { useAuth } from './lib/auth'
 
@@ -33,6 +34,15 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RootLayout />} />
         <Route path="/signin" element={<SignIn />} />
+
+        <Route
+          path="/profile"
+          element={
+            <AuthGate>
+              <ProfileSettings />
+            </AuthGate>
+          }
+        />
 
         <Route
           path="/events"

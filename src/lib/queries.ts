@@ -23,7 +23,7 @@ export type EventTotals = {
   event_date: string | null
   currency: string
   planned_total: number
-  negotiated_total: number
+  confirmed_total: number
   paid_total: number
   scheduled_total: number
 }
@@ -40,7 +40,7 @@ export type Category = {
   event_id: string
   name: string
   planned_amount: number | null
-  negotiated_amount: number | null
+  confirmed_amount: number | null
   note: string | null
   sort_order: number
 }
@@ -155,6 +155,37 @@ export async function getEvent(id: string): Promise<EventTotals | null> {
   return (data as EventTotals | null) ?? null
 }
 
+export async function updateMyProfile(input: {
+  display_name?: string | null
+  phone_e164?: string | null
+}): Promise<void> {
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user) throw new Error('Not signed in')
+  const updates: Record<string, unknown> = {}
+  if (input.display_name !== undefined) {
+    const trimmed = input.display_name?.trim()
+    updates.display_name = trimmed ? trimmed : null
+  }
+  if (input.phone_e164 !== undefined) {
+    const trimmed = input.phone_e164?.trim()
+    updates.phone_e164 = trimmed ? trimmed : null
+  }
+  if (Object.keys(updates).length === 0) return
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', user.user.id)
+  if (error) throw error
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('events')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function createEvent(input: {
   name: string
   event_date?: string | null
@@ -258,7 +289,7 @@ export async function getCategoryTotals(categoryId: string): Promise<CategoryTot
 export async function createCategory(eventId: string, input: {
   name: string
   planned_amount?: number | null
-  negotiated_amount?: number | null
+  confirmed_amount?: number | null
   note?: string | null
 }): Promise<Category> {
   const maxOrder = await supabase
@@ -275,7 +306,7 @@ export async function createCategory(eventId: string, input: {
       event_id: eventId,
       name: input.name.trim(),
       planned_amount: input.planned_amount ?? null,
-      negotiated_amount: input.negotiated_amount ?? null,
+      confirmed_amount: input.confirmed_amount ?? null,
       note: input.note ?? null,
       sort_order: (maxOrder.data?.sort_order ?? -1) + 1,
     })
@@ -290,14 +321,14 @@ export async function updateCategory(
   input: {
     name?: string
     planned_amount?: number | null
-    negotiated_amount?: number | null
+    confirmed_amount?: number | null
     note?: string | null
   }
 ): Promise<Category> {
   const updates: Record<string, unknown> = {}
   if (input.name !== undefined) updates.name = input.name.trim()
   if (input.planned_amount !== undefined) updates.planned_amount = input.planned_amount
-  if (input.negotiated_amount !== undefined) updates.negotiated_amount = input.negotiated_amount
+  if (input.confirmed_amount !== undefined) updates.confirmed_amount = input.confirmed_amount
   if (input.note !== undefined) updates.note = input.note
 
   const { data, error } = await supabase

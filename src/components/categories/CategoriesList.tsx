@@ -93,8 +93,8 @@ export function CategoriesList() {
                   <dd className="font-mono">₹{formatINR(cat.planned_amount ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-400">Negotiated</dt>
-                  <dd className="font-mono">₹{formatINR(cat.negotiated_amount ?? 0)}</dd>
+                  <dt className="text-slate-400">Confirmed</dt>
+                  <dd className="font-mono">₹{formatINR(cat.confirmed_amount ?? 0)}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-400">Paid</dt>
