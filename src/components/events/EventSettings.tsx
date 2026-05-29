@@ -10,6 +10,7 @@ import {
   removeMember,
   deleteEvent,
   updateEvent,
+  cloneEvent,
   getEvent,
   type EventMember,
   type EventInvite,
@@ -159,6 +160,29 @@ export function EventSettings() {
       setError(err instanceof Error ? err.message : 'Could not save')
     } finally {
       setSavingEvent(false)
+    }
+  }
+
+  const handleDuplicate = async () => {
+    if (!eventId || !event) return
+    const suggested = `${event.name} (copy)`
+    const newName = prompt('Name for the new event?', suggested)
+    if (newName === null) return
+    const trimmed = newName.trim()
+    if (!trimmed) {
+      setError('Event name cannot be empty')
+      return
+    }
+    setError(null)
+    setInfo(null)
+    setBusy(true)
+    try {
+      const newId = await cloneEvent(eventId, trimmed)
+      navigate(`/events/${newId}/summary`, { replace: false })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not duplicate')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -365,6 +389,24 @@ export function EventSettings() {
                 {busy ? 'Inviting…' : 'Send invite'}
               </button>
             </form>
+          </section>
+        )}
+
+        {/* Duplicate event (any member) */}
+        {myRow && event && (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h2 className="text-sm font-semibold mb-1">Duplicate</h2>
+            <p className="text-xs text-slate-500 mb-3">
+              Create a new event with the same categories, people, transactions, and
+              scheduled payments. Receipts aren't copied.
+            </p>
+            <button
+              onClick={handleDuplicate}
+              disabled={busy}
+              className="w-full bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
+            >
+              {busy ? 'Duplicating…' : 'Duplicate this event'}
+            </button>
           </section>
         )}
 

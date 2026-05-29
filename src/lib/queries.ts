@@ -196,6 +196,20 @@ export async function updateEvent(
   return data as Event
 }
 
+// Atomically clones the source event into a new event owned by the
+// caller. Categories, people, transactions, and scheduled payments are
+// copied; receipts are not (those reference the source event's storage).
+// Scheduled-payment status is reset so the copy starts as a clean ledger.
+export async function cloneEvent(sourceEventId: string, newName: string): Promise<string> {
+  const { data, error } = await supabase.rpc('clone_event', {
+    p_source_event_id: sourceEventId,
+    p_new_name: newName,
+  })
+  if (error) throw error
+  if (!data) throw new Error('Clone returned no event id')
+  return data as string
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   const { error } = await supabase.from('events').delete().eq('id', id)
   if (error) throw error
