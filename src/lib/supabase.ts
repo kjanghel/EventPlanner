@@ -21,5 +21,6 @@ export type Profile = {
   id: string
   display_name: string | null
   phone_e164: string | null
+  locale: 'en' | 'hi'
   created_at: string
 }

@@ -8,20 +8,11 @@ import {
   type Person,
 } from '../../lib/queries'
 import type { EventOutletContext } from '../events/EventHome'
+import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
 
-function formatINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
-
-function formatDay(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
-function monthKey(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
+function monthKey(dateStr: string, locale: 'en' | 'hi') {
+  const tag = locale === 'hi' ? 'hi-IN' : 'en-IN'
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString(tag, {
     month: 'long',
     year: 'numeric',
   })
@@ -30,9 +21,10 @@ function monthKey(dateStr: string) {
 export function Activity() {
   const { id: eventId } = useParams<{ id: string }>()
   const { refreshTick } = useOutletContext<EventOutletContext>()
+  const { locale, t } = useLocale()
   const [people, setPeople] = useState<Person[]>([])
   const [rows, setRows] = useState<LedgerRow[] | null>(null)
-  const [filterPerson, setFilterPerson] = useState<string>('') // '' = all
+  const [filterPerson, setFilterPerson] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -58,7 +50,7 @@ export function Activity() {
     const out: Array<{ label: string; items: LedgerRow[] }> = []
     let currentLabel = ''
     for (const r of rows) {
-      const label = monthKey(r.txn_date)
+      const label = monthKey(r.txn_date, locale)
       if (label !== currentLabel) {
         out.push({ label, items: [] })
         currentLabel = label
@@ -66,25 +58,24 @@ export function Activity() {
       out[out.length - 1].items.push(r)
     }
     return out
-  }, [rows])
+  }, [rows, locale])
 
   const handleOpenReceipt = async (path: string) => {
     try {
       const url = await getReceiptSignedUrl(path)
       window.open(url, '_blank', 'noopener')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not open receipt')
+      setError(e instanceof Error ? e.message : t('activity.couldNotOpen'))
     }
   }
 
   return (
     <div className="space-y-3">
-      {/* Filter chips */}
       <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
         <FilterChip
           active={filterPerson === ''}
           onClick={() => setFilterPerson('')}
-          label="All"
+          label={t('activity.all')}
         />
         {people.map((p) => (
           <FilterChip
@@ -96,29 +87,29 @@ export function Activity() {
         ))}
       </div>
 
-      {/* Total card */}
       <div className="bg-white rounded-lg border border-slate-200 p-3 flex items-center justify-between">
         <div className="text-xs text-slate-500">
           {filterPerson
-            ? `${people.find((p) => p.id === filterPerson)?.name ?? 'Person'} paid`
-            : 'Total paid'}
+            ? t('activity.personPaid', {
+                name: people.find((p) => p.id === filterPerson)?.name ?? t('activity.personFallback'),
+              })
+            : t('activity.totalPaid')}
         </div>
         <div className="text-base font-semibold font-mono">
-          ₹{formatINR(totalForFilter)}
+          ₹{formatAmount(totalForFilter)}
         </div>
       </div>
 
       {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
 
       {rows === null && !error && (
-        <p className="text-sm text-slate-500 text-center py-8">Loading…</p>
+        <p className="text-sm text-slate-500 text-center py-8">{t('common.loading')}</p>
       )}
 
       {rows?.length === 0 && !error && (
-        <p className="text-sm text-slate-500 text-center py-8">No transactions yet.</p>
+        <p className="text-sm text-slate-500 text-center py-8">{t('activity.noTransactions')}</p>
       )}
 
-      {/* Grouped ledger */}
       {groups.map((g) => (
         <section key={g.label}>
           <h3 className="text-[11px] uppercase tracking-wide text-slate-400 px-1 mb-1.5">
@@ -135,7 +126,7 @@ export function Activity() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{r.category_name}</p>
                       <p className="text-xs text-slate-500">
-                        {formatDay(r.txn_date)}
+                        {formatDate(r.txn_date, locale)}
                         {r.payer_name && <> · {r.payer_name}</>}
                       </p>
                       {r.note && (
@@ -144,7 +135,7 @@ export function Activity() {
                     </div>
                     <div className="flex flex-col items-end shrink-0">
                       <p className="text-sm font-mono font-medium">
-                        ₹{formatINR(r.amount)}
+                        ₹{formatAmount(r.amount)}
                       </p>
                       {r.receipt_path && (
                         <button
@@ -154,7 +145,7 @@ export function Activity() {
                           }}
                           className="text-[11px] text-teal-700 hover:text-teal-800 mt-0.5"
                         >
-                          Receipt
+                          {t('activity.receipt')}
                         </button>
                       )}
                     </div>

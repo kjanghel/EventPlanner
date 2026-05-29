@@ -19,21 +19,12 @@ import { TransactionFormSheet } from './TransactionFormSheet'
 import { ScheduledFormSheet } from './ScheduledFormSheet'
 import { MarkAsPaidSheet } from './MarkAsPaidSheet'
 import { TransactionReceiptActions } from './TransactionReceiptActions'
-
-function formatINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
+import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
 
 export function CategoryDetail() {
   const { id: eventId, catId } = useParams<{ id: string; catId: string }>()
   const { refreshTick } = useOutletContext<EventOutletContext>()
+  const { locale, t } = useLocale()
   const [category, setCategory] = useState<CategoryTotals | null>(null)
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [scheduled, setScheduled] = useState<ScheduledPayment[] | null>(null)
@@ -67,22 +58,22 @@ export function CategoryDetail() {
   }, [people])
 
   const handleDeleteTxn = async (id: string) => {
-    if (!confirm('Delete this transaction?')) return
+    if (!confirm(t('categories.confirmDeleteTxn'))) return
     try {
       await deleteTransaction(id)
-      setTransactions((prev) => prev?.filter((t) => t.id !== id) ?? null)
+      setTransactions((prev) => prev?.filter((tx) => tx.id !== id) ?? null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete')
+      setError(err instanceof Error ? err.message : t('categories.couldNotDelete'))
     }
   }
 
   const handleDeleteScheduled = async (id: string) => {
-    if (!confirm('Delete this scheduled payment?')) return
+    if (!confirm(t('categories.confirmDeleteSched'))) return
     try {
       await deleteScheduledPayment(id)
       setScheduled((prev) => prev?.filter((s) => s.id !== id) ?? null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete')
+      setError(err instanceof Error ? err.message : t('categories.couldNotDelete'))
     }
   }
 
@@ -112,11 +103,10 @@ export function CategoryDetail() {
         confirmed_amount: editConfirmed.trim() ? parseFloat(editConfirmed) : null,
         note: editNote.trim() ? editNote : null,
       })
-      // Merge update into current totals row.
       setCategory((prev) => (prev ? { ...prev, ...updated } : prev))
       setEditingCategory(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save')
+      setError(err instanceof Error ? err.message : t('categories.couldNotSave'))
     } finally {
       setSavingCategory(false)
     }
@@ -126,26 +116,27 @@ export function CategoryDetail() {
     <div className="space-y-4">
       {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
 
-      {/* Category header */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <div className="flex items-center justify-between mb-3 gap-2">
           {editingCategory ? (
-            <span className="text-xs text-slate-500">Editing category</span>
+            <span className="text-xs text-slate-500">{t('categories.editingCategory')}</span>
           ) : (
-            <h2 className="text-base font-semibold truncate">{category?.name ?? 'Category'}</h2>
+            <h2 className="text-base font-semibold truncate">
+              {category?.name ?? t('categories.categoryFallback')}
+            </h2>
           )}
           <div className="flex items-center gap-3 shrink-0">
             {!editingCategory && category && (
               <button
                 onClick={startEditCategory}
                 className="text-slate-400 hover:text-slate-700"
-                aria-label="Edit category"
+                aria-label={t('categories.editCategory')}
               >
                 <Pencil className="w-4 h-4" />
               </button>
             )}
             <Link to={`/events/${eventId}/budget`} className="text-xs text-slate-500">
-              ← Budget
+              {t('categories.backBudget')}
             </Link>
           </div>
         </div>
@@ -155,23 +146,23 @@ export function CategoryDetail() {
             {category?.note && <p className="text-xs text-slate-500 mb-3">{category.note}</p>}
             <dl className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <dt className="text-slate-400">Planned</dt>
-                <dd className="font-mono">₹{formatINR(category?.planned_amount ?? 0)}</dd>
+                <dt className="text-slate-400">{t('categories.planned')}</dt>
+                <dd className="font-mono">₹{formatAmount(category?.planned_amount ?? 0)}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Confirmed</dt>
-                <dd className="font-mono">₹{formatINR(category?.confirmed_amount ?? 0)}</dd>
+                <dt className="text-slate-400">{t('categories.confirmed')}</dt>
+                <dd className="font-mono">₹{formatAmount(category?.confirmed_amount ?? 0)}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Paid</dt>
-                <dd className="font-mono">₹{formatINR(category?.paid_total ?? 0)}</dd>
+                <dt className="text-slate-400">{t('events.paid')}</dt>
+                <dd className="font-mono">₹{formatAmount(category?.paid_total ?? 0)}</dd>
               </div>
               <div>
                 <dt className="text-slate-400">
-                  {remaining != null && remaining < 0 ? 'Over' : 'Remaining'}
+                  {remaining != null && remaining < 0 ? t('categories.over') : t('categories.remaining')}
                 </dt>
                 <dd className="font-mono">
-                  {remaining != null ? `₹${formatINR(Math.abs(remaining))}` : '—'}
+                  {remaining != null ? `₹${formatAmount(Math.abs(remaining))}` : '—'}
                 </dd>
               </div>
             </dl>
@@ -179,7 +170,7 @@ export function CategoryDetail() {
         ) : (
           <form onSubmit={saveEditCategory} className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">{t('eventSettings.name')}</label>
               <input
                 autoFocus
                 value={editName}
@@ -189,7 +180,7 @@ export function CategoryDetail() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Planned (₹)</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.plannedAmount')}</label>
                 <input
                   type="number"
                   value={editPlanned}
@@ -199,7 +190,7 @@ export function CategoryDetail() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Confirmed (₹)</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.confirmedAmount')}</label>
                 <input
                   type="number"
                   value={editConfirmed}
@@ -211,7 +202,7 @@ export function CategoryDetail() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Note <span className="text-slate-400 font-normal">(optional)</span>
+                {t('categories.note')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
               </label>
               <input
                 value={editNote}
@@ -225,27 +216,26 @@ export function CategoryDetail() {
                 disabled={savingCategory || !editName.trim()}
                 className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
               >
-                {savingCategory ? 'Saving…' : 'Save'}
+                {savingCategory ? t('common.saving') : t('common.save')}
               </button>
               <button
                 type="button"
                 onClick={() => setEditingCategory(false)}
                 className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
         )}
       </div>
 
-      {/* Transactions */}
       <div>
-        <h3 className="text-sm font-semibold mb-2">Transactions</h3>
+        <h3 className="text-sm font-semibold mb-2">{t('categories.transactions')}</h3>
         {transactions === null ? (
-          <p className="text-xs text-slate-500">Loading...</p>
+          <p className="text-xs text-slate-500">{t('common.loading')}</p>
         ) : transactions.length === 0 ? (
-          <p className="text-xs text-slate-500">No transactions yet.</p>
+          <p className="text-xs text-slate-500">{t('categories.noTransactions')}</p>
         ) : (
           <ul className="space-y-2">
             {transactions.map((txn) => {
@@ -255,9 +245,9 @@ export function CategoryDetail() {
                   <div className="bg-white rounded-lg border border-slate-200 p-3 text-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium">₹{formatINR(txn.amount)}</p>
+                        <p className="font-medium">₹{formatAmount(txn.amount)}</p>
                         <p className="text-xs text-slate-500">
-                          {formatDate(txn.txn_date)}
+                          {formatDate(txn.txn_date, locale)}
                           {payer && <> · {payer}</>}
                         </p>
                         {txn.note && (
@@ -278,7 +268,7 @@ export function CategoryDetail() {
                         receiptPath={txn.receipt_path}
                         onChange={(path) =>
                           setTransactions((prev) =>
-                            prev?.map((t) => (t.id === txn.id ? { ...t, receipt_path: path } : t)) ?? null
+                            prev?.map((tx) => (tx.id === txn.id ? { ...tx, receipt_path: path } : tx)) ?? null
                           )
                         }
                       />
@@ -294,7 +284,7 @@ export function CategoryDetail() {
             onClick={() => setShowTxnForm(true)}
             className="w-full mt-2 text-sm text-slate-600 bg-slate-50 rounded-lg py-2 border border-slate-200"
           >
-            + Add transaction
+            {t('categories.addTransaction')}
           </button>
         )}
         {showTxnForm && (
@@ -311,13 +301,12 @@ export function CategoryDetail() {
         )}
       </div>
 
-      {/* Scheduled Payments */}
       <div>
-        <h3 className="text-sm font-semibold mb-2">Scheduled Payments</h3>
+        <h3 className="text-sm font-semibold mb-2">{t('categories.scheduledPayments')}</h3>
         {scheduled === null ? (
-          <p className="text-xs text-slate-500">Loading...</p>
+          <p className="text-xs text-slate-500">{t('common.loading')}</p>
         ) : scheduled.length === 0 ? (
-          <p className="text-xs text-slate-500">No scheduled payments yet.</p>
+          <p className="text-xs text-slate-500">{t('categories.noScheduledYet')}</p>
         ) : (
           <ul className="space-y-2">
             {scheduled
@@ -328,13 +317,15 @@ export function CategoryDetail() {
                 <li key={sp.id}>
                   <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-3 text-sm">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">₹{formatINR(sp.expected_amount)}</p>
+                      <p className="font-medium">₹{formatAmount(sp.expected_amount)}</p>
                       <p className="text-xs text-slate-500">
-                        {formatDate(sp.due_date)}
+                        {formatDate(sp.due_date, locale)}
                         {payer && <> · {payer}</>}
                       </p>
                       {sp.note && <p className="text-xs text-slate-500 mt-0.5 truncate">{sp.note}</p>}
-                      {sp.status === 'paid' && <p className="text-xs text-green-600 font-medium mt-0.5">Paid</p>}
+                      {sp.status === 'paid' && (
+                        <p className="text-xs text-green-600 font-medium mt-0.5">{t('categories.paidLabel')}</p>
+                      )}
                     </div>
                     <div className="flex gap-1 ml-2">
                       {sp.status === 'pending' && (
@@ -342,7 +333,7 @@ export function CategoryDetail() {
                           onClick={() => setMarkPaidFor(sp)}
                           className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded"
                         >
-                          Mark paid
+                          {t('categories.markPaidShort')}
                         </button>
                       )}
                       <button
@@ -363,7 +354,7 @@ export function CategoryDetail() {
             onClick={() => setShowScheduledForm(true)}
             className="w-full mt-2 text-sm text-slate-600 bg-slate-50 rounded-lg py-2 border border-slate-200"
           >
-            + Add scheduled payment
+            {t('categories.addScheduled')}
           </button>
         )}
         {showScheduledForm && (
@@ -384,7 +375,6 @@ export function CategoryDetail() {
         )}
       </div>
 
-      {/* Mark as paid sheet */}
       {markPaidFor && (
         <MarkAsPaidSheet
           eventId={eventId!}

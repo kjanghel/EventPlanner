@@ -5,19 +5,21 @@ import { getEvent, type EventTotals } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { QuickAddFab } from '../quickadd/QuickAddFab'
 import { Logo } from '../brand/Logo'
+import { useT, type TKey } from '../../lib/i18n'
 
-const tabs = [
-  { to: 'summary', label: 'Summary', icon: LayoutDashboard },
-  { to: 'budget', label: 'Budget', icon: Wallet },
-  { to: 'activity', label: 'Activity', icon: Receipt },
-  { to: 'upcoming', label: 'Upcoming', icon: Calendar },
-  { to: 'people', label: 'People', icon: Users },
+const tabs: { to: string; labelKey: TKey; icon: typeof LayoutDashboard }[] = [
+  { to: 'summary', labelKey: 'tabs.summary', icon: LayoutDashboard },
+  { to: 'budget', labelKey: 'tabs.budget', icon: Wallet },
+  { to: 'activity', labelKey: 'tabs.activity', icon: Receipt },
+  { to: 'upcoming', labelKey: 'tabs.upcoming', icon: Calendar },
+  { to: 'people', labelKey: 'tabs.people', icon: Users },
 ]
 
 export type EventOutletContext = { event: EventTotals | null; refreshTick: number }
 
 export function EventHome() {
   const { id } = useParams<{ id: string }>()
+  const t = useT()
   const [event, setEvent] = useState<EventTotals | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
@@ -28,7 +30,7 @@ export function EventHome() {
     let isMounted = true
     const timeout = setTimeout(() => {
       if (isMounted) {
-        setError('Request timed out. Please refresh.')
+        setError(t('common.requestTimeout'))
         setEvent(null)
       }
     }, 8000)
@@ -46,7 +48,7 @@ export function EventHome() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [id])
+  }, [id, t])
 
   // Realtime: subscribe to changes for this event. Coalesce bursts with a
   // 300ms debounce, then bump refreshTick (tabs refetch) + re-pull totals.
@@ -85,18 +87,18 @@ export function EventHome() {
           <Link
             to="/"
             className="flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700"
-            aria-label="Back to events"
+            aria-label={t('events.backToEvents')}
           >
             <Logo className="w-6 h-6" />
-            <span className="hidden sm:inline">Events</span>
+            <span className="hidden sm:inline">{t('events.backToEvents')}</span>
           </Link>
           <h1 className="text-base font-semibold truncate max-w-[55%] text-center">
-            {event?.name ?? 'Event'}
+            {event?.name ?? t('events.event')}
           </h1>
           <Link
             to={`/events/${id}/settings`}
             className="text-slate-500 hover:text-slate-700"
-            aria-label="Event settings"
+            aria-label={t('eventSettings.title')}
           >
             <Settings className="w-5 h-5" />
           </Link>
@@ -124,11 +126,11 @@ export function EventHome() {
 
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
         <ul className="grid grid-cols-5 max-w-md mx-auto">
-          {tabs.map((t) => {
-            const Icon = t.icon
+          {tabs.map((tab) => {
+            const Icon = tab.icon
             return (
-              <li key={t.to}>
-                <NavLink to={t.to} className="block">
+              <li key={tab.to}>
+                <NavLink to={tab.to} className="block">
                   {({ isActive }) => (
                     <div className="flex flex-col items-center pt-2 pb-1.5 gap-0.5">
                       <span
@@ -143,7 +145,7 @@ export function EventHome() {
                           isActive ? 'text-teal-700 font-medium' : 'text-slate-500'
                         }`}
                       >
-                        {t.label}
+                        {t(tab.labelKey)}
                       </span>
                     </div>
                   )}

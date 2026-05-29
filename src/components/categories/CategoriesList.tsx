@@ -3,14 +3,12 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { listCategories, type CategoryTotals, deleteCategory } from '../../lib/queries'
 import { CategoryFormSheet } from './CategoryFormSheet'
 import type { EventOutletContext } from '../events/EventHome'
-
-function formatINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
+import { formatAmount, useT } from '../../lib/i18n'
 
 export function CategoriesList() {
   const { id: eventId } = useParams<{ id: string }>()
   const { refreshTick } = useOutletContext<EventOutletContext>()
+  const t = useT()
   const [categories, setCategories] = useState<CategoryTotals[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -20,7 +18,7 @@ export function CategoriesList() {
     let isMounted = true
     const timeout = setTimeout(() => {
       if (isMounted) {
-        setError('Request timed out. Please refresh.')
+        setError(t('common.requestTimeout'))
         setCategories(null)
       }
     }, 8000)
@@ -38,15 +36,15 @@ export function CategoriesList() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [eventId, refreshTick])
+  }, [eventId, refreshTick, t])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this category?')) return
+    if (!confirm(t('categories.confirmDelete'))) return
     try {
       await deleteCategory(id)
       setCategories((prev) => prev?.filter((c) => c.id !== id) ?? null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete')
+      setError(err instanceof Error ? err.message : t('categories.couldNotDelete'))
     }
   }
 
@@ -60,11 +58,11 @@ export function CategoriesList() {
       {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
 
       {categories === null && !error && (
-        <p className="text-sm text-slate-500 text-center py-8">Loading categories…</p>
+        <p className="text-sm text-slate-500 text-center py-8">{t('categories.loading')}</p>
       )}
 
       {categories?.length === 0 && (
-        <p className="text-sm text-slate-500 text-center py-8">No categories yet.</p>
+        <p className="text-sm text-slate-500 text-center py-8">{t('categories.empty.title')}</p>
       )}
 
       <ul className="space-y-2">
@@ -89,16 +87,16 @@ export function CategoriesList() {
               {cat.note && <p className="text-xs text-slate-500 mb-2">{cat.note}</p>}
               <dl className="grid grid-cols-3 gap-2 text-xs">
                 <div>
-                  <dt className="text-slate-400">Planned</dt>
-                  <dd className="font-mono">₹{formatINR(cat.planned_amount ?? 0)}</dd>
+                  <dt className="text-slate-400">{t('categories.planned')}</dt>
+                  <dd className="font-mono">₹{formatAmount(cat.planned_amount ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-400">Confirmed</dt>
-                  <dd className="font-mono">₹{formatINR(cat.confirmed_amount ?? 0)}</dd>
+                  <dt className="text-slate-400">{t('categories.confirmed')}</dt>
+                  <dd className="font-mono">₹{formatAmount(cat.confirmed_amount ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-400">Paid</dt>
-                  <dd className="font-mono">₹{formatINR(cat.paid_total)}</dd>
+                  <dt className="text-slate-400">{t('events.paid')}</dt>
+                  <dd className="font-mono">₹{formatAmount(cat.paid_total)}</dd>
                 </div>
               </dl>
             </Link>
@@ -111,7 +109,7 @@ export function CategoriesList() {
           onClick={() => setShowForm(true)}
           className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-4 text-sm font-medium"
         >
-          + Add category
+          {t('categories.addCategoryButton')}
         </button>
       ) : (
         <CategoryFormSheet eventId={eventId!} onAdded={handleCategoryAdded} onClose={() => setShowForm(false)} />

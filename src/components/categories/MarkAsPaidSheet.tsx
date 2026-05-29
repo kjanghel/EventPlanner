@@ -6,6 +6,7 @@ import {
   type ScheduledPayment,
   type Transaction,
 } from '../../lib/queries'
+import { useT } from '../../lib/i18n'
 
 interface MarkAsPaidSheetProps {
   eventId: string
@@ -24,6 +25,7 @@ export function MarkAsPaidSheet({
   onSuccess,
   onClose,
 }: MarkAsPaidSheetProps) {
+  const t = useT()
   const [people, setPeople] = useState<Person[]>([])
   const [personId, setPersonId] = useState<string>(expectedPayerId ?? '')
   const [amount, setAmount] = useState(String(expectedAmount))
@@ -41,11 +43,11 @@ export function MarkAsPaidSheet({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount.trim() || isNaN(paidAmount) || paidAmount <= 0) {
-      setError('Amount must be greater than 0')
+      setError(t('categories.amountGtZero'))
       return
     }
     if (!personId) {
-      setError('Select who paid')
+      setError(t('categories.selectPayer'))
       return
     }
     setError(null)
@@ -59,17 +61,17 @@ export function MarkAsPaidSheet({
       })
       onSuccess(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not mark as paid')
+      setError(err instanceof Error ? err.message : t('markPaid.couldNotMark'))
       setBusy(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="font-semibold text-sm">Mark as Paid</h3>
+      <h3 className="font-semibold text-sm">{t('markPaid.title')}</h3>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Amount paid (₹)</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('markPaid.amountLabel')}</label>
         <input
           autoFocus
           type="number"
@@ -80,20 +82,20 @@ export function MarkAsPaidSheet({
         />
         {isPartial && (
           <p className="text-xs text-amber-700 mt-1">
-            Partial: ₹{(expectedAmount - paidAmount).toFixed(0)} will remain pending.
+            {t('markPaid.partialNotice', { remaining: (expectedAmount - paidAmount).toFixed(0) })}
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Paid by</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.paidBy')}</label>
         <select
           required
           value={personId}
           onChange={(e) => setPersonId(e.target.value)}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          <option value="">Select person…</option>
+          <option value="">{t('quickAdd.selectPerson')}</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -101,20 +103,18 @@ export function MarkAsPaidSheet({
           ))}
         </select>
         {people.length === 0 && (
-          <p className="text-xs text-amber-700 mt-1">
-            Add a person on the People tab first.
-          </p>
+          <p className="text-xs text-amber-700 mt-1">{t('quickAdd.noPeopleHint')}</p>
         )}
       </div>
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Note <span className="text-slate-400 font-normal">(optional)</span>
+          {t('categories.note')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. Paid via bank transfer"
+          placeholder={t('markPaid.notePlaceholder')}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
@@ -125,14 +125,14 @@ export function MarkAsPaidSheet({
           disabled={busy || !personId || !amount.trim()}
           className="flex-1 bg-green-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Saving…' : isPartial ? 'Record partial' : 'Mark as Paid'}
+          {busy ? t('common.saving') : isPartial ? t('markPaid.recordPartial') : t('markPaid.title')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
 

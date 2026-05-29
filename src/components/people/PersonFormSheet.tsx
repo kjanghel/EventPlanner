@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPerson, type Person } from '../../lib/queries'
+import { useT } from '../../lib/i18n'
 
 interface PersonFormSheetProps {
   eventId: string
@@ -8,6 +9,7 @@ interface PersonFormSheetProps {
 }
 
 export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetProps) {
+  const t = useT()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
@@ -25,7 +27,7 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
       })
       onAdded(person)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add person')
+      setError(err instanceof Error ? err.message : t('people.couldNotAdd'))
       setBusy(false)
     }
   }
@@ -33,25 +35,25 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
   return (
     <form onSubmit={handleSubmit} className="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('people.name')}</label>
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Vivek"
+          placeholder={t('people.namePlaceholder')}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Phone <span className="text-slate-400 font-normal">(optional)</span>
+          {t('people.phone')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <input
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="+91..."
+          placeholder={t('people.phonePlaceholder')}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
@@ -62,14 +64,14 @@ export function PersonFormSheet({ eventId, onAdded, onClose }: PersonFormSheetPr
           disabled={busy || !name.trim()}
           className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Adding…' : 'Add'}
+          {busy ? t('people.adding') : t('common.add')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
 

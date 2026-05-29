@@ -17,11 +17,13 @@ import {
   type EventTotals,
 } from '../../lib/queries'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 
 export function EventSettings() {
   const { id: eventId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const t = useT()
   const [event, setEvent] = useState<EventTotals | null>(null)
   const [members, setMembers] = useState<EventMember[] | null>(null)
   const [invites, setInvites] = useState<EventInvite[] | null>(null)
@@ -44,7 +46,6 @@ export function EventSettings() {
     ]).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [eventId])
 
-  // The current user's row in event_members (if any) determines what they can do.
   const myRow = members?.find((m) => m.user_id === user?.id)
   const isOwner = myRow?.role === 'owner'
 
@@ -53,14 +54,11 @@ export function EventSettings() {
     if (!eventId) return
     const trimmed = email.trim().toLowerCase()
     if (!trimmed.includes('@')) {
-      setError('Enter a valid email')
+      setError(t('eventSettings.inviteEmailInvalid'))
       return
     }
-    if (members?.some((m) => m.display_name?.toLowerCase() === trimmed)) {
-      // Lightweight client-side dup hint (display name isn't email but is a heuristic).
-    }
     if (invites?.some((i) => i.invited_email.toLowerCase() === trimmed)) {
-      setError('This email already has a pending invite.')
+      setError(t('eventSettings.invitePending'))
       return
     }
     setError(null)
@@ -72,66 +70,67 @@ export function EventSettings() {
       setEmail('')
       try {
         await sendInviteEmail(trimmed)
-        setInfo(`Invited ${inv.invited_email}. Sign-in email sent.`)
+        setInfo(t('eventSettings.invited', { email: inv.invited_email }))
       } catch (emailErr) {
-        // Invite is still saved; just couldn't send email (e.g. rate limited).
         setInfo(
-          `Invited ${inv.invited_email}. Email send failed (` +
-            (emailErr instanceof Error ? emailErr.message : 'unknown') +
-            ') — use Copy link below to share manually.'
+          t('eventSettings.invitedNoEmail', {
+            email: inv.invited_email,
+            reason: emailErr instanceof Error ? emailErr.message : 'unknown',
+          }),
         )
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not invite')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotInvite'))
     } finally {
       setBusy(false)
     }
   }
 
   const handleCopyInvite = async (inv: EventInvite) => {
-    const eventName = event?.name ?? 'an event'
+    const name = event?.name ?? t('events.event')
     const url = `${window.location.origin}/EventPlanner/`
-    const text =
-      `You've been invited to plan "${eventName}" on Event Planner.\n` +
-      `Sign in with this email (${inv.invited_email}) at: ${url}`
+    const text = t('eventSettings.inviteCopyBody', {
+      name,
+      email: inv.invited_email,
+      url,
+    })
     try {
       await navigator.clipboard.writeText(text)
-      setInfo('Invite text copied to clipboard.')
+      setInfo(t('eventSettings.copiedInvite'))
     } catch {
-      // Fallback: surface the text so user can copy manually.
       setError(text)
     }
   }
 
   const handleCancelInvite = async (id: string) => {
-    if (!confirm('Cancel this invite?')) return
+    if (!confirm(t('eventSettings.confirmCancelInvite'))) return
     try {
       await cancelInvite(id)
       setInvites((prev) => prev?.filter((i) => i.id !== id) ?? null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not cancel')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotCancel'))
     }
   }
 
   const handleRemoveMember = async (memberUserId: string) => {
     if (!eventId) return
-    if (!confirm('Remove this member from the event?')) return
+    if (!confirm(t('eventSettings.confirmRemoveMember'))) return
     try {
       await removeMember(eventId, memberUserId)
       setMembers((prev) => prev?.filter((m) => m.user_id !== memberUserId) ?? null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotRemove'))
     }
   }
 
   const handleLeave = async () => {
     if (!eventId || !user) return
-    if (!confirm('Leave this event? You will lose access.')) return
+    if (!confirm(t('eventSettings.confirmLeave'))) return
     try {
       await removeMember(eventId, user.id)
       navigate('/events', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not leave')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotLeave'))
     }
   }
 
@@ -152,12 +151,11 @@ export function EventSettings() {
         name: eventName,
         event_date: eventDate || null,
       })
-      // Refresh totals view so header reflects new name/date.
       const refreshed = await getEvent(eventId)
       setEvent(refreshed)
       setEditingEvent(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save')
+      setError(err instanceof Error ? err.message : t('profile.saveFailed'))
     } finally {
       setSavingEvent(false)
     }
@@ -165,12 +163,12 @@ export function EventSettings() {
 
   const handleDuplicate = async () => {
     if (!eventId || !event) return
-    const suggested = `${event.name} (copy)`
-    const newName = prompt('Name for the new event?', suggested)
+    const suggested = t('eventSettings.duplicateSuffix', { name: event.name })
+    const newName = prompt(t('eventSettings.duplicatePrompt'), suggested)
     if (newName === null) return
     const trimmed = newName.trim()
     if (!trimmed) {
-      setError('Event name cannot be empty')
+      setError(t('eventSettings.nameEmpty'))
       return
     }
     setError(null)
@@ -180,7 +178,7 @@ export function EventSettings() {
       const newId = await cloneEvent(eventId, trimmed)
       navigate(`/events/${newId}/summary`, { replace: false })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not duplicate')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotDuplicate'))
     } finally {
       setBusy(false)
     }
@@ -188,13 +186,13 @@ export function EventSettings() {
 
   const handleDeleteEvent = async () => {
     if (!eventId) return
-    const name = event?.name ?? 'this event'
-    if (!confirm(`Delete ${name}? This will remove it for everyone — members will lose access. This cannot be undone from the UI.`)) return
+    const name = event?.name ?? t('eventSettings.deleteFallbackName')
+    if (!confirm(t('eventSettings.confirmDelete', { name }))) return
     try {
       await deleteEvent(eventId)
       navigate('/events', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete event')
+      setError(err instanceof Error ? err.message : t('eventSettings.couldNotDelete'))
     }
   }
 
@@ -203,10 +201,10 @@ export function EventSettings() {
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <Link to={`/events/${eventId}/summary`} className="text-sm text-slate-500">
-            ← Back
+            ← {t('common.back')}
           </Link>
           <h1 className="text-base font-semibold tracking-tight truncate max-w-[60%]">
-            {event?.name ?? 'Settings'}
+            {event?.name ?? t('eventSettings.settingsFallback')}
           </h1>
           <span className="w-12" />
         </div>
@@ -216,16 +214,15 @@ export function EventSettings() {
         {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
         {info && <p className="text-xs text-green-800 bg-green-50 rounded-lg p-2">{info}</p>}
 
-        {/* Event details (owner only) */}
         {isOwner && event && (
           <section className="bg-white rounded-2xl border border-slate-200 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold">Event details</h2>
+              <h2 className="text-sm font-semibold">{t('eventSettings.eventDetails')}</h2>
               {!editingEvent && (
                 <button
                   onClick={startEditEvent}
                   className="text-slate-400 hover:text-slate-700"
-                  aria-label="Edit event"
+                  aria-label={t('eventSettings.editEvent')}
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -234,18 +231,18 @@ export function EventSettings() {
             {!editingEvent ? (
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between gap-2">
-                  <dt className="text-xs text-slate-400">Name</dt>
+                  <dt className="text-xs text-slate-400">{t('eventSettings.name')}</dt>
                   <dd className="font-medium truncate">{event.name}</dd>
                 </div>
                 <div className="flex justify-between gap-2">
-                  <dt className="text-xs text-slate-400">Date</dt>
+                  <dt className="text-xs text-slate-400">{t('eventSettings.eventDate')}</dt>
                   <dd className="font-mono text-xs">{event.event_date ?? '—'}</dd>
                 </div>
               </dl>
             ) : (
               <form onSubmit={saveEditEvent} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">{t('eventSettings.name')}</label>
                   <input
                     autoFocus
                     value={eventName}
@@ -255,7 +252,7 @@ export function EventSettings() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Date <span className="text-slate-400 font-normal">(optional)</span>
+                    {t('eventSettings.eventDate')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
                   </label>
                   <input
                     type="date"
@@ -270,14 +267,14 @@ export function EventSettings() {
                     disabled={savingEvent || !eventName.trim()}
                     className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
                   >
-                    {savingEvent ? 'Saving…' : 'Save'}
+                    {savingEvent ? t('common.saving') : t('common.save')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingEvent(false)}
                     className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </form>
@@ -285,13 +282,12 @@ export function EventSettings() {
           </section>
         )}
 
-        {/* Members */}
         <section className="bg-white rounded-2xl border border-slate-200 p-4">
-          <h2 className="text-sm font-semibold mb-3">Members</h2>
+          <h2 className="text-sm font-semibold mb-3">{t('eventSettings.members')}</h2>
           {members === null ? (
-            <p className="text-xs text-slate-500">Loading…</p>
+            <p className="text-xs text-slate-500">{t('common.loading')}</p>
           ) : members.length === 0 ? (
-            <p className="text-xs text-slate-500">No members yet.</p>
+            <p className="text-xs text-slate-500">{t('eventSettings.noMembers')}</p>
           ) : (
             <ul className="space-y-2">
               {members.map((m) => (
@@ -301,9 +297,9 @@ export function EventSettings() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">
-                      {m.display_name ?? m.email ?? 'Unnamed'}
+                      {m.display_name ?? m.email ?? t('eventSettings.unnamed')}
                       {m.user_id === user?.id && (
-                        <span className="ml-1 text-xs text-slate-400">(you)</span>
+                        <span className="ml-1 text-xs text-slate-400">{t('eventSettings.you')}</span>
                       )}
                     </p>
                     {m.email && m.display_name && (
@@ -316,7 +312,7 @@ export function EventSettings() {
                       onClick={() => handleRemoveMember(m.user_id)}
                       className="text-xs text-red-600 hover:text-red-700 ml-2"
                     >
-                      Remove
+                      {t('eventSettings.remove')}
                     </button>
                   )}
                 </li>
@@ -325,14 +321,13 @@ export function EventSettings() {
           )}
         </section>
 
-        {/* Pending invites */}
         {isOwner && (
           <section className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h2 className="text-sm font-semibold mb-3">Pending invites</h2>
+            <h2 className="text-sm font-semibold mb-3">{t('eventSettings.pendingInvites')}</h2>
             {invites === null ? (
-              <p className="text-xs text-slate-500">Loading…</p>
+              <p className="text-xs text-slate-500">{t('common.loading')}</p>
             ) : invites.length === 0 ? (
-              <p className="text-xs text-slate-500">No pending invites.</p>
+              <p className="text-xs text-slate-500">{t('eventSettings.noPendingInvites')}</p>
             ) : (
               <ul className="space-y-2">
                 {invites.map((inv) => (
@@ -342,19 +337,19 @@ export function EventSettings() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{inv.invited_email}</p>
-                      <p className="text-xs text-slate-500">Pending</p>
+                      <p className="text-xs text-slate-500">{t('eventSettings.pendingLabel')}</p>
                     </div>
                     <button
                       onClick={() => handleCopyInvite(inv)}
                       className="text-xs text-teal-700 hover:text-teal-800"
                     >
-                      Copy link
+                      {t('eventSettings.copyLink')}
                     </button>
                     <button
                       onClick={() => handleCancelInvite(inv.id)}
                       className="text-xs text-red-600 hover:text-red-700"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </li>
                 ))}
@@ -363,10 +358,9 @@ export function EventSettings() {
           </section>
         )}
 
-        {/* Invite form */}
         {isOwner && (
           <section className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h2 className="text-sm font-semibold mb-3">Invite by email</h2>
+            <h2 className="text-sm font-semibold mb-3">{t('eventSettings.inviteByEmail')}</h2>
             <form onSubmit={handleInvite} className="space-y-3">
               <div>
                 <input
@@ -374,68 +368,56 @@ export function EventSettings() {
                   autoComplete="off"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alice@gmail.com"
+                  placeholder={t('eventSettings.invitePlaceholder')}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  They'll join automatically the next time they sign in with this email.
-                </p>
+                <p className="text-xs text-slate-500 mt-1">{t('eventSettings.inviteHint')}</p>
               </div>
               <button
                 type="submit"
                 disabled={busy || !email.trim()}
                 className="w-full bg-teal-600 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
               >
-                {busy ? 'Inviting…' : 'Send invite'}
+                {busy ? t('eventSettings.inviting') : t('eventSettings.sendInvite')}
               </button>
             </form>
           </section>
         )}
 
-        {/* Duplicate event (any member) */}
         {myRow && event && (
           <section className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h2 className="text-sm font-semibold mb-1">Duplicate</h2>
-            <p className="text-xs text-slate-500 mb-3">
-              Create a new event with the same categories, people, transactions, and
-              scheduled payments. Receipts aren't copied.
-            </p>
+            <h2 className="text-sm font-semibold mb-1">{t('eventSettings.duplicate')}</h2>
+            <p className="text-xs text-slate-500 mb-3">{t('eventSettings.duplicateDesc')}</p>
             <button
               onClick={handleDuplicate}
               disabled={busy}
               className="w-full bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Duplicating…' : 'Duplicate this event'}
+              {busy ? t('eventSettings.duplicating') : t('eventSettings.duplicateThis')}
             </button>
           </section>
         )}
 
-        {/* Leave event (non-owners) */}
         {!isOwner && myRow && (
           <section className="bg-white rounded-2xl border border-slate-200 p-4">
             <button
               onClick={handleLeave}
               className="w-full text-sm text-red-600 font-medium py-2"
             >
-              Leave event
+              {t('eventSettings.leaveEvent')}
             </button>
           </section>
         )}
 
-        {/* Danger zone (owner) */}
         {isOwner && (
           <section className="bg-white rounded-2xl border border-red-200 p-4">
-            <h2 className="text-sm font-semibold text-red-700 mb-1">Danger zone</h2>
-            <p className="text-xs text-slate-500 mb-3">
-              Deleting the event removes it for all members. Categories,
-              transactions, and scheduled payments stay in the database but
-              become inaccessible from the app.
-            </p>
+            <h2 className="text-sm font-semibold text-red-700 mb-1">{t('common.dangerZone')}</h2>
+            <p className="text-xs text-slate-500 mb-3">{t('eventSettings.dangerDesc')}</p>
             <button
               onClick={handleDeleteEvent}
               className="w-full bg-red-600 text-white rounded-lg py-2 px-3 text-sm font-medium hover:bg-red-700"
             >
-              Delete event
+              {t('eventSettings.deleteEvent')}
             </button>
           </section>
         )}

@@ -8,6 +8,7 @@ import {
   type Person,
 } from '../../lib/queries'
 import { compressImage } from '../../lib/images'
+import { useT } from '../../lib/i18n'
 
 interface TransactionFormSheetProps {
   eventId: string
@@ -17,6 +18,7 @@ interface TransactionFormSheetProps {
 }
 
 export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: TransactionFormSheetProps) {
+  const t = useT()
   const [people, setPeople] = useState<Person[]>([])
   const [amount, setAmount] = useState('')
   const [personId, setPersonId] = useState<string>('')
@@ -33,11 +35,11 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!amount.trim() || parseFloat(amount) <= 0) {
-      setError('Amount must be greater than 0')
+      setError(t('categories.amountGtZero'))
       return
     }
     if (!personId) {
-      setError('Select who paid')
+      setError(t('categories.selectPayer'))
       return
     }
     setError(null)
@@ -60,16 +62,16 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           await setTransactionReceipt(txn.id, path)
           withReceipt = { ...txn, receipt_path: path }
         } catch (uploadErr) {
-          // Transaction is saved; surface the receipt failure but don't roll back.
           setError(
-            'Transaction saved but receipt upload failed: ' +
-              (uploadErr instanceof Error ? uploadErr.message : 'unknown')
+            t('categories.txnSavedReceiptFailed', {
+              reason: uploadErr instanceof Error ? uploadErr.message : 'unknown',
+            }),
           )
         }
       }
       onAdded(withReceipt)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add transaction')
+      setError(err instanceof Error ? err.message : t('categories.couldNotAddTxn'))
       setBusy(false)
     }
   }
@@ -77,7 +79,7 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Amount (₹)</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('quickAdd.amount')}</label>
         <input
           autoFocus
           type="number"
@@ -90,14 +92,14 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Paid by</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.paidBy')}</label>
         <select
           required
           value={personId}
           onChange={(e) => setPersonId(e.target.value)}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          <option value="">Select person…</option>
+          <option value="">{t('quickAdd.selectPerson')}</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -105,14 +107,12 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           ))}
         </select>
         {people.length === 0 && (
-          <p className="text-xs text-amber-700 mt-1">
-            Add a person on the People tab first.
-          </p>
+          <p className="text-xs text-amber-700 mt-1">{t('quickAdd.noPeopleHint')}</p>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.date')}</label>
         <input
           type="date"
           value={txnDate}
@@ -123,19 +123,19 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Note <span className="text-slate-400 font-normal">(optional)</span>
+          {t('categories.note')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. Advance payment"
+          placeholder={t('categories.notePlaceholderAdvance')}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Receipt <span className="text-slate-400 font-normal">(optional)</span>
+          {t('quickAdd.receipt')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <input
           type="file"
@@ -155,14 +155,14 @@ export function TransactionFormSheet({ eventId, categoryId, onAdded, onClose }: 
           disabled={busy || !amount.trim() || !personId}
           className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Adding…' : 'Add'}
+          {busy ? t('categories.adding') : t('common.add')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
 

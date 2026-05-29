@@ -10,6 +10,7 @@ import {
   type Person,
 } from '../../lib/queries'
 import { compressImage } from '../../lib/images'
+import { useT } from '../../lib/i18n'
 
 type Mode = 'txn' | 'scheduled'
 
@@ -19,13 +20,14 @@ interface Props {
 }
 
 export function QuickAddFab({ eventId, onSaved }: Props) {
+  const t = useT()
   const [open, setOpen] = useState(false)
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Quick add"
+        aria-label={t('quickAdd.label')}
         className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-14 h-14 rounded-full bg-[#ff7e6b] text-white text-2xl font-light shadow-lg flex items-center justify-center hover:bg-[#f56a55] active:scale-95 transition"
       >
         +
@@ -54,6 +56,7 @@ function QuickAddSheet({
   onClose: () => void
   onSaved: () => void
 }) {
+  const t = useT()
   const [mode, setMode] = useState<Mode>('txn')
   const [categories, setCategories] = useState<CategoryTotals[]>([])
   const [people, setPeople] = useState<Person[]>([])
@@ -123,7 +126,7 @@ function QuickAddSheet({
       }
       onSaved()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save')
+      setError(err instanceof Error ? err.message : t('profile.saveFailed'))
       setBusy(false)
     }
   }
@@ -137,11 +140,11 @@ function QuickAddSheet({
       />
       <div className="relative bg-white w-full max-w-md rounded-t-2xl p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold">Quick add</h2>
+          <h2 className="text-base font-semibold">{t('quickAdd.title')}</h2>
           <button
             onClick={onClose}
             className="text-slate-400 text-2xl leading-none w-8 h-8 flex items-center justify-center"
-            aria-label="Close"
+            aria-label={t('quickAdd.close')}
           >
             ×
           </button>
@@ -156,7 +159,7 @@ function QuickAddSheet({
               mode === 'txn' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
             }`}
           >
-            Transaction
+            {t('quickAdd.transaction')}
           </button>
           <button
             type="button"
@@ -165,13 +168,13 @@ function QuickAddSheet({
               mode === 'scheduled' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
             }`}
           >
-            Scheduled
+            {t('quickAdd.scheduled')}
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Amount (₹)</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">{t('quickAdd.amount')}</label>
             <input
               autoFocus
               type="number"
@@ -185,13 +188,13 @@ function QuickAddSheet({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">{t('quickAdd.category')}</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              <option value="">Select category…</option>
+              <option value="">{t('quickAdd.selectCategory')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -199,21 +202,21 @@ function QuickAddSheet({
               ))}
             </select>
             {categories.length === 0 && (
-              <p className="text-xs text-amber-700 mt-1">No categories yet. Add one from the Budget tab.</p>
+              <p className="text-xs text-amber-700 mt-1">{t('quickAdd.noCategoriesHint')}</p>
             )}
           </div>
 
           {mode === 'txn' ? (
             <>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Paid by</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.paidBy')}</label>
                 <select
                   required
                   value={personId}
                   onChange={(e) => setPersonId(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="">Select person…</option>
+                  <option value="">{t('quickAdd.selectPerson')}</option>
                   {people.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -221,13 +224,11 @@ function QuickAddSheet({
                   ))}
                 </select>
                 {people.length === 0 && (
-                  <p className="text-xs text-amber-700 mt-1">
-                    Add a person on the People tab first.
-                  </p>
+                  <p className="text-xs text-amber-700 mt-1">{t('quickAdd.noPeopleHint')}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.date')}</label>
                 <input
                   type="date"
                   value={txnDate}
@@ -237,7 +238,7 @@ function QuickAddSheet({
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Receipt <span className="text-slate-400 font-normal">(optional)</span>
+                  {t('quickAdd.receipt')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
                 </label>
                 <input
                   type="file"
@@ -254,7 +255,7 @@ function QuickAddSheet({
           ) : (
             <>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Due date</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.dueDate')}</label>
                 <input
                   type="date"
                   value={dueDate}
@@ -264,14 +265,14 @@ function QuickAddSheet({
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Expected payer <span className="text-slate-400 font-normal">(optional)</span>
+                  {t('categories.expectedPayer')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
                 </label>
                 <select
                   value={personId}
                   onChange={(e) => setPersonId(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="">No one assigned</option>
+                  <option value="">{t('categories.noOneAssigned')}</option>
                   {people.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -284,7 +285,7 @@ function QuickAddSheet({
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
-              Note <span className="text-slate-400 font-normal">(optional)</span>
+              {t('quickAdd.note')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
             </label>
             <input
               value={note}
@@ -302,14 +303,14 @@ function QuickAddSheet({
               disabled={busy || !canSave}
               className="flex-1 bg-teal-600 text-white rounded-lg py-2.5 px-3 text-sm font-medium disabled:opacity-50"
             >
-              {busy ? 'Saving…' : 'Save'}
+              {busy ? t('common.saving') : t('common.save')}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2.5 px-3 text-sm font-medium"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>

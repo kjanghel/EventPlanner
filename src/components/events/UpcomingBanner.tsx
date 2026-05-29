@@ -1,17 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listAllUpcoming, type UpcomingPayment } from '../../lib/queries'
-
-function formatINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
+import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
 
 function daysFromToday(dateStr: string) {
   const today = new Date()
@@ -29,6 +19,7 @@ function urgencyDot(diff: number) {
 const SHOW_LIMIT = 5
 
 export function UpcomingBanner() {
+  const { locale, t } = useLocale()
   const [items, setItems] = useState<UpcomingPayment[] | null>(null)
   const [expanded, setExpanded] = useState(false)
 
@@ -55,17 +46,17 @@ export function UpcomingBanner() {
     <section className="bg-white rounded-2xl border border-amber-200 p-4 mb-5">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-sm font-semibold">Needs attention</h2>
+          <h2 className="text-sm font-semibold">{t('upcoming.needsAttention')}</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {overdue > 0 && (
               <>
-                <span className="font-semibold text-red-700">{overdue}</span> overdue
+                <span className="font-semibold text-red-700">{overdue}</span> {t('upcoming.overdueLabel')}
               </>
             )}
             {overdue > 0 && thisWeek > 0 && ' · '}
             {thisWeek > 0 && (
               <>
-                <span className="font-semibold text-amber-700">{thisWeek}</span> due this week
+                <span className="font-semibold text-amber-700">{thisWeek}</span> {t('upcoming.thisWeek')}
               </>
             )}
           </p>
@@ -88,11 +79,11 @@ export function UpcomingBanner() {
                     <span className="text-slate-400 font-normal"> · {sp.event_name}</span>
                   </p>
                   <p className="text-xs text-slate-500">
-                    {formatDate(sp.due_date)}
+                    {formatDate(sp.due_date, locale)}
                     {sp.expected_payer_name && <> · {sp.expected_payer_name}</>}
                   </p>
                 </div>
-                <p className="text-sm font-mono shrink-0">₹{formatINR(sp.expected_amount)}</p>
+                <p className="text-sm font-mono shrink-0">₹{formatAmount(sp.expected_amount)}</p>
               </Link>
             </li>
           )
@@ -104,7 +95,7 @@ export function UpcomingBanner() {
           onClick={() => setExpanded(true)}
           className="mt-2 text-xs text-slate-500 hover:text-slate-700"
         >
-          + {hiddenCount} more
+          {t('upcoming.moreCount', { count: hiddenCount })}
         </button>
       )}
     </section>

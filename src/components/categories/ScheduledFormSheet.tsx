@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createScheduledPayment, listPeople, type ScheduledPayment, type Person } from '../../lib/queries'
+import { useT } from '../../lib/i18n'
 
 interface ScheduledFormSheetProps {
   eventId: string
@@ -9,6 +10,7 @@ interface ScheduledFormSheetProps {
 }
 
 export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: ScheduledFormSheetProps) {
+  const t = useT()
   const [people, setPeople] = useState<Person[]>([])
   const [dueDate, setDueDate] = useState('')
   const [amount, setAmount] = useState('')
@@ -24,7 +26,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!dueDate || !amount.trim() || parseFloat(amount) <= 0) {
-      setError('Please fill in all fields. Amount must be greater than 0.')
+      setError(t('categories.fillAllFields'))
       return
     }
     setError(null)
@@ -40,7 +42,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
       })
       onAdded(sp)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add scheduled payment')
+      setError(err instanceof Error ? err.message : t('categories.couldNotAddSched'))
       setBusy(false)
     }
   }
@@ -48,7 +50,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
   return (
     <form onSubmit={handleSubmit} className="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Due date</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.dueDate')}</label>
         <input
           autoFocus
           type="date"
@@ -59,7 +61,7 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Expected amount (₹)</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.expectedAmount')}</label>
         <input
           type="number"
           step="0.01"
@@ -72,14 +74,14 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Expected payer <span className="text-slate-400 font-normal">(optional)</span>
+          {t('categories.expectedPayer')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <select
           value={payerId}
           onChange={(e) => setPayerId(e.target.value)}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          <option value="">No one assigned</option>
+          <option value="">{t('categories.noOneAssigned')}</option>
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -90,12 +92,12 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">
-          Note <span className="text-slate-400 font-normal">(optional)</span>
+          {t('categories.note')} <span className="text-slate-400 font-normal">({t('common.optional')})</span>
         </label>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. Final payment"
+          placeholder={t('categories.notePlaceholderFinal')}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
       </div>
@@ -106,14 +108,14 @@ export function ScheduledFormSheet({ eventId, categoryId, onAdded, onClose }: Sc
           disabled={busy || !dueDate || !amount.trim()}
           className="flex-1 bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50"
         >
-          {busy ? 'Adding…' : 'Add'}
+          {busy ? t('categories.adding') : t('common.add')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="flex-1 bg-slate-100 text-slate-900 rounded-lg py-2 px-3 text-sm font-medium"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
 

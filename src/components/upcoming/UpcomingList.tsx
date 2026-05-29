@@ -3,19 +3,9 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { listEventUpcoming, type UpcomingPayment } from '../../lib/queries'
 import { MarkAsPaidSheet } from '../categories/MarkAsPaidSheet'
 import type { EventOutletContext } from '../events/EventHome'
+import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
 
-function formatINR(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-// Returns ms between today (midnight local) and the given YYYY-MM-DD date.
+// Returns days between today (midnight local) and the given YYYY-MM-DD date.
 function daysFromToday(dateStr: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -29,17 +19,10 @@ function urgencyClass(diff: number) {
   return 'border-slate-200 bg-white'
 }
 
-function urgencyLabel(diff: number) {
-  if (diff < 0) return `Overdue ${Math.abs(diff)}d`
-  if (diff === 0) return 'Due today'
-  if (diff === 1) return 'Due tomorrow'
-  if (diff <= 7) return `Due in ${diff}d`
-  return null
-}
-
 export function UpcomingList() {
   const { id: eventId } = useParams<{ id: string }>()
   const { refreshTick } = useOutletContext<EventOutletContext>()
+  const { locale, t } = useLocale()
   const [items, setItems] = useState<UpcomingPayment[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [markPaidFor, setMarkPaidFor] = useState<UpcomingPayment | null>(null)
@@ -52,14 +35,22 @@ export function UpcomingList() {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [eventId, refreshTick])
 
+  const urgencyLabel = (diff: number) => {
+    if (diff < 0) return t('upcoming.overdue', { days: Math.abs(diff) })
+    if (diff === 0) return t('upcoming.dueToday')
+    if (diff === 1) return t('upcoming.dueTomorrow')
+    if (diff <= 7) return t('upcoming.dueIn', { days: diff })
+    return null
+  }
+
   if (error) {
     return <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>
   }
   if (items === null) {
-    return <p className="text-sm text-slate-500 text-center py-8">Loading…</p>
+    return <p className="text-sm text-slate-500 text-center py-8">{t('common.loading')}</p>
   }
   if (items.length === 0) {
-    return <p className="text-sm text-slate-500 text-center py-8">No upcoming payments.</p>
+    return <p className="text-sm text-slate-500 text-center py-8">{t('upcoming.empty')}</p>
   }
 
   let overdue = 0
@@ -74,17 +65,17 @@ export function UpcomingList() {
     <div className="space-y-3">
       {(overdue > 0 || thisWeek > 0) && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs">
-          <p className="font-medium text-amber-900">Needs attention</p>
+          <p className="font-medium text-amber-900">{t('upcoming.needsAttention')}</p>
           <p className="text-amber-800 mt-0.5">
             {overdue > 0 && (
               <>
-                <span className="font-semibold">{overdue}</span> overdue
+                <span className="font-semibold">{overdue}</span> {t('upcoming.overdueLabel')}
               </>
             )}
             {overdue > 0 && thisWeek > 0 && ' · '}
             {thisWeek > 0 && (
               <>
-                <span className="font-semibold">{thisWeek}</span> due this week
+                <span className="font-semibold">{thisWeek}</span> {t('upcoming.thisWeek')}
               </>
             )}
           </p>
@@ -102,10 +93,10 @@ export function UpcomingList() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-medium truncate">{sp.category_name}</p>
-                      <p className="font-mono text-sm">₹{formatINR(sp.expected_amount)}</p>
+                      <p className="font-mono text-sm">₹{formatAmount(sp.expected_amount)}</p>
                     </div>
                     <p className="text-xs text-slate-500">
-                      {formatDate(sp.due_date)}
+                      {formatDate(sp.due_date, locale)}
                       {label && <> · <span className="font-medium">{label}</span></>}
                       {sp.expected_payer_name && <> · {sp.expected_payer_name}</>}
                     </p>
@@ -117,13 +108,13 @@ export function UpcomingList() {
                     onClick={() => setMarkPaidFor(sp)}
                     className="text-xs bg-green-600 text-white px-3 py-1.5 rounded font-medium"
                   >
-                    Mark paid
+                    {t('upcoming.markPaid')}
                   </button>
                   <Link
                     to={`/events/${eventId}/budget/${sp.category_id}`}
                     className="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded"
                   >
-                    Open category
+                    {t('upcoming.openCategory')}
                   </Link>
                 </div>
               </div>
