@@ -101,6 +101,7 @@ export type EventMember = {
   user_id: string
   role: 'owner' | 'editor'
   display_name: string | null
+  email: string | null
   added_at: string
 }
 
@@ -720,25 +721,30 @@ export async function listEventMembers(eventId: string): Promise<EventMember[]> 
   }>
 
   const userIds = members.map((m) => m.user_id)
-  const nameById = new Map<string, string | null>()
+  const profileById = new Map<string, { display_name: string | null; email: string | null }>()
   if (userIds.length > 0) {
     const { data: profs, error: profErr } = await supabase
       .from('profiles')
-      .select('id, display_name')
+      .select('id, display_name, email')
       .in('id', userIds)
     if (profErr) throw profErr
-    for (const p of (profs ?? []) as Array<{ id: string; display_name: string | null }>) {
-      nameById.set(p.id, p.display_name)
+    type ProfRow = { id: string; display_name: string | null; email: string | null }
+    for (const p of (profs ?? []) as ProfRow[]) {
+      profileById.set(p.id, { display_name: p.display_name, email: p.email })
     }
   }
 
-  return members.map((m) => ({
-    event_id: m.event_id,
-    user_id: m.user_id,
-    role: m.role,
-    display_name: nameById.get(m.user_id) ?? null,
-    added_at: m.added_at,
-  }))
+  return members.map((m) => {
+    const p = profileById.get(m.user_id)
+    return {
+      event_id: m.event_id,
+      user_id: m.user_id,
+      role: m.role,
+      display_name: p?.display_name ?? null,
+      email: p?.email ?? null,
+      added_at: m.added_at,
+    }
+  })
 }
 
 export async function listEventInvites(eventId: string): Promise<EventInvite[]> {

@@ -277,12 +277,15 @@ export function EventSettings() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">
-                      {m.display_name ?? 'Unnamed'}
+                      {m.display_name ?? m.email ?? 'Unnamed'}
                       {m.user_id === user?.id && (
                         <span className="ml-1 text-xs text-slate-400">(you)</span>
                       )}
                     </p>
-                    <p className="text-xs text-slate-500">{m.role}</p>
+                    {m.email && m.display_name && (
+                      <p className="text-xs text-slate-500 truncate">{m.email}</p>
+                    )}
+                    <p className="text-xs text-slate-400">{m.role}</p>
                   </div>
                   {isOwner && m.role !== 'owner' && (
                     <button
