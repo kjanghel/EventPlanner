@@ -146,6 +146,19 @@ export function CategoriesList() {
     return byGroup
   }, [categories])
 
+  // Sort groups by total paid amount descending so the most active groups
+  // float to the top. Ties (e.g. zero-paid groups on a fresh event) fall
+  // back to the DB sort_order so the layout stays stable.
+  const sortedGroups = useMemo(() => {
+    if (!groups) return null
+    return [...groups].sort((a, b) => {
+      const aPaid = (grouped.get(a.id) ?? []).reduce((s, c) => s + c.paid_total, 0)
+      const bPaid = (grouped.get(b.id) ?? []).reduce((s, c) => s + c.paid_total, 0)
+      if (bPaid !== aPaid) return bPaid - aPaid
+      return a.sort_order - b.sort_order
+    })
+  }, [groups, grouped])
+
   const allExpanded = (groups?.length ?? 0) > 0 && groups!.every((g) => expanded.has(g.id))
 
   const toggleAll = () => {
@@ -279,7 +292,7 @@ export function CategoriesList() {
         </div>
       )}
 
-      {groups && groups.length > 1 && (
+      {sortedGroups && sortedGroups.length > 1 && (
         <div className="-mx-4 px-4 overflow-x-auto">
           <div className="flex items-center gap-1.5 pb-1 min-w-min">
             <button
@@ -288,7 +301,7 @@ export function CategoriesList() {
             >
               {allExpanded ? t('groups.collapseAll') : t('groups.expandAll')}
             </button>
-            {groups.map((g) => {
+            {sortedGroups.map((g) => {
               const isOpen = expanded.has(g.id)
               return (
                 <button
@@ -312,7 +325,7 @@ export function CategoriesList() {
         <p className="text-sm text-slate-500 text-center py-8">{t('categories.empty.title')}</p>
       )}
 
-      {groups?.map((group) => {
+      {sortedGroups?.map((group) => {
         const cats = grouped.get(group.id) ?? []
         const groupPlanned = cats.reduce((s, c) => s + (c.planned_amount ?? 0), 0)
         const groupPaid = cats.reduce((s, c) => s + c.paid_total, 0)
