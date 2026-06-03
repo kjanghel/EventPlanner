@@ -359,6 +359,12 @@ const en = {
   'templates.cat.security': 'Security',
   'templates.cat.promotion': 'Promotion',
   'templates.cat.tickets': 'Tickets',
+
+  // Summary — Phase E additions
+  'summary.spendByGroup': 'Spend by group',
+  'summary.spendOverTime': 'Spend over time',
+  'summary.topSpenders': 'Top spenders',
+  'summary.legendRemaining': 'Remaining',
 } as const
 
 export type TKey = keyof typeof en
@@ -710,6 +716,12 @@ const hi: Partial<Record<TKey, string>> = {
   'templates.cat.security': 'सुरक्षा',
   'templates.cat.promotion': 'प्रचार',
   'templates.cat.tickets': 'टिकट',
+
+  // Summary — Phase E
+  'summary.spendByGroup': 'समूह के अनुसार खर्च',
+  'summary.spendOverTime': 'समय के साथ खर्च',
+  'summary.topSpenders': 'सबसे ज़्यादा खर्च करने वाले',
+  'summary.legendRemaining': 'बचा हुआ',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }
