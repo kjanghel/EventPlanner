@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
 import { LayoutDashboard, Wallet, Calendar, Receipt, Users, Settings } from 'lucide-react'
 import { getEvent, type EventTotals } from '../../lib/queries'
@@ -58,7 +58,11 @@ export function EventHome() {
     const bump = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        setRefreshTick((t) => t + 1)
+        // startTransition deprioritizes the refresh fan-out so a burst of
+        // realtime updates can't block tap input on the bottom nav.
+        startTransition(() => {
+          setRefreshTick((t) => t + 1)
+        })
         getEvent(id).then(setEvent).catch(() => {})
       }, 300)
     }
@@ -130,7 +134,10 @@ export function EventHome() {
             const Icon = tab.icon
             return (
               <li key={tab.to}>
-                <NavLink to={tab.to} className="block">
+                <NavLink
+                  to={tab.to}
+                  className="block min-h-[56px] [touch-action:manipulation] [-webkit-tap-highlight-color:rgba(15,118,110,0.12)]"
+                >
                   {({ isActive }) => (
                     <div className="flex flex-col items-center pt-2 pb-1.5 gap-0.5">
                       <span

@@ -28,7 +28,7 @@ export function QuickAddFab({ eventId, onSaved }: Props) {
       <button
         onClick={() => setOpen(true)}
         aria-label={t('quickAdd.label')}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-14 h-14 rounded-full bg-[#ff7e6b] text-white text-2xl font-light shadow-lg flex items-center justify-center hover:bg-[#f56a55] active:scale-95 transition"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 w-14 h-14 rounded-full bg-[#ff7e6b] text-white text-2xl font-light shadow-lg flex items-center justify-center hover:bg-[#f56a55] active:scale-95 transition [touch-action:manipulation]"
       >
         +
       </button>
