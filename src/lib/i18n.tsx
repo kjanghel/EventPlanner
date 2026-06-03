@@ -297,8 +297,9 @@ const en = {
   'quickAdd.receipt': 'Receipt',
   'quickAdd.note': 'Note',
 
-  // Common — additions for groups feature
+  // Common — additions for groups + templates features
   'common.dismiss': 'Dismiss',
+  'common.next': 'Next',
 
   // Categories — additions for groups feature
   'categories.add': 'Add',
@@ -313,6 +314,51 @@ const en = {
   'groups.hint.title': 'Tip',
   'groups.hint.body':
     "Your categories are in one 'General' group. Add groups like 'Reception' or 'Barat' to organise them.",
+
+  // Templates (NewEvent template picker + applied group/category names)
+  'templates.pickTitle': 'Start from a template',
+  'templates.pickSubtitle': 'We\'ll create some common groups and categories for you. You can edit anything later.',
+  'templates.wedding.label': 'Indian Wedding',
+  'templates.wedding.description': '5 sub-events with catering, decor, music',
+  'templates.wedding.haldi': 'Haldi',
+  'templates.wedding.mehendi': 'Mehendi',
+  'templates.wedding.sangeet': 'Sangeet',
+  'templates.wedding.barat': 'Barat',
+  'templates.wedding.reception': 'Reception',
+  'templates.birthday.label': 'Birthday / Anniversary',
+  'templates.birthday.description': 'Cake, decor, gifts, catering',
+  'templates.birthday.celebration': 'Celebration',
+  'templates.concert.label': 'Concert / Live event',
+  'templates.concert.description': 'Stage, artist, venue, marketing',
+  'templates.concert.stage': 'Stage',
+  'templates.concert.artist': 'Artist',
+  'templates.concert.venue': 'Venue',
+  'templates.concert.marketing': 'Marketing',
+  'templates.blank.label': 'Blank',
+  'templates.blank.description': 'Start from scratch — no groups',
+  'templates.applying': 'Setting up your event…',
+  // Common template categories — reused across templates
+  'templates.cat.decoration': 'Decoration',
+  'templates.cat.catering': 'Catering',
+  'templates.cat.music': 'Music',
+  'templates.cat.photography': 'Photography',
+  'templates.cat.mehendiArtist': 'Mehendi artist',
+  'templates.cat.dj': 'DJ',
+  'templates.cat.horseCar': 'Horse / Car',
+  'templates.cat.band': 'Band',
+  'templates.cat.venue': 'Venue',
+  'templates.cat.cake': 'Cake',
+  'templates.cat.gifts': 'Gifts',
+  'templates.cat.lighting': 'Lighting',
+  'templates.cat.sound': 'Sound',
+  'templates.cat.stageSetup': 'Stage setup',
+  'templates.cat.artistFees': 'Artist fees',
+  'templates.cat.travel': 'Travel',
+  'templates.cat.accommodation': 'Accommodation',
+  'templates.cat.venueRental': 'Venue rental',
+  'templates.cat.security': 'Security',
+  'templates.cat.promotion': 'Promotion',
+  'templates.cat.tickets': 'Tickets',
 } as const
 
 export type TKey = keyof typeof en
@@ -605,6 +651,7 @@ const hi: Partial<Record<TKey, string>> = {
 
   // Common
   'common.dismiss': 'बंद करें',
+  'common.next': 'आगे',
 
   // Categories — groups addition
   'categories.add': 'जोड़ें',
@@ -619,6 +666,50 @@ const hi: Partial<Record<TKey, string>> = {
   'groups.hint.title': 'सुझाव',
   'groups.hint.body':
     'सभी कैटेगरी अभी "General" समूह में हैं। रिसेप्शन, बारात जैसे समूह बनाकर व्यवस्थित करें।',
+
+  // Templates
+  'templates.pickTitle': 'टेम्पलेट से शुरू करें',
+  'templates.pickSubtitle': 'हम आपके लिए कुछ सामान्य समूह और कैटेगरी बना देंगे। बाद में बदल सकते हैं।',
+  'templates.wedding.label': 'भारतीय शादी',
+  'templates.wedding.description': '5 उप-कार्यक्रम, कैटरिंग, सजावट, संगीत',
+  'templates.wedding.haldi': 'हल्दी',
+  'templates.wedding.mehendi': 'मेहंदी',
+  'templates.wedding.sangeet': 'संगीत',
+  'templates.wedding.barat': 'बारात',
+  'templates.wedding.reception': 'रिसेप्शन',
+  'templates.birthday.label': 'जन्मदिन / सालगिरह',
+  'templates.birthday.description': 'केक, सजावट, उपहार, कैटरिंग',
+  'templates.birthday.celebration': 'समारोह',
+  'templates.concert.label': 'कॉन्सर्ट / लाइव कार्यक्रम',
+  'templates.concert.description': 'मंच, कलाकार, स्थल, प्रचार',
+  'templates.concert.stage': 'मंच',
+  'templates.concert.artist': 'कलाकार',
+  'templates.concert.venue': 'स्थल',
+  'templates.concert.marketing': 'प्रचार',
+  'templates.blank.label': 'खाली',
+  'templates.blank.description': 'खाली शुरू करें — कोई समूह नहीं',
+  'templates.applying': 'आपका कार्यक्रम तैयार हो रहा है…',
+  'templates.cat.decoration': 'सजावट',
+  'templates.cat.catering': 'कैटरिंग',
+  'templates.cat.music': 'संगीत',
+  'templates.cat.photography': 'फोटोग्राफी',
+  'templates.cat.mehendiArtist': 'मेहंदी आर्टिस्ट',
+  'templates.cat.dj': 'डीजे',
+  'templates.cat.horseCar': 'घोड़ी / गाड़ी',
+  'templates.cat.band': 'बैंड',
+  'templates.cat.venue': 'स्थल',
+  'templates.cat.cake': 'केक',
+  'templates.cat.gifts': 'उपहार',
+  'templates.cat.lighting': 'लाइटिंग',
+  'templates.cat.sound': 'साउंड',
+  'templates.cat.stageSetup': 'मंच सेटअप',
+  'templates.cat.artistFees': 'कलाकार फीस',
+  'templates.cat.travel': 'यात्रा',
+  'templates.cat.accommodation': 'रहने की व्यवस्था',
+  'templates.cat.venueRental': 'स्थल किराया',
+  'templates.cat.security': 'सुरक्षा',
+  'templates.cat.promotion': 'प्रचार',
+  'templates.cat.tickets': 'टिकट',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }
