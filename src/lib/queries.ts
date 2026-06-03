@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { logError } from './errorLog'
 import type { Session } from '@supabase/supabase-js'
 
 // =====================================================================
@@ -347,7 +348,10 @@ export async function createCategory(eventId: string, input: {
     })
     .select('*')
     .single()
-  if (error) throw error
+  if (error) {
+    void logError('createCategory', error, { eventId, input }, eventId)
+    throw error
+  }
   return data as Category
 }
 
@@ -372,7 +376,10 @@ export async function updateCategory(
     .eq('id', id)
     .select('*')
     .single()
-  if (error) throw error
+  if (error) {
+    void logError('updateCategory', error, { id, updates })
+    throw error
+  }
   return data as Category
 }
 
@@ -472,7 +479,10 @@ export async function createTransaction(input: {
     })
     .select('*')
     .single()
-  if (error) throw error
+  if (error) {
+    void logError('createTransaction', error, { input }, input.event_id)
+    throw error
+  }
   return data as Transaction
 }
 
@@ -501,7 +511,10 @@ export async function uploadReceipt(
   const { error } = await supabase.storage
     .from(RECEIPTS_BUCKET)
     .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
-  if (error) throw error
+  if (error) {
+    void logError('uploadReceipt', error, { eventId, transactionId, size: blob.size }, eventId)
+    throw error
+  }
   return path
 }
 
@@ -565,7 +578,10 @@ export async function createScheduledPayment(input: {
     })
     .select('*')
     .single()
-  if (error) throw error
+  if (error) {
+    void logError('createScheduledPayment', error, { input }, input.event_id)
+    throw error
+  }
   return data as ScheduledPayment
 }
 
