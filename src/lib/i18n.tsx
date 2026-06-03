@@ -317,6 +317,13 @@ const en = {
     "Your categories are in one 'General' group. Add groups like 'Reception' or 'Barat' to organise them.",
   'groups.expandAll': 'Expand all',
   'groups.collapseAll': 'Collapse all',
+  'groups.renameGroup': 'Rename group',
+  'groups.deleteGroup': 'Delete group',
+  'groups.couldNotSave': 'Could not save group.',
+  'groups.couldNotDelete': 'Could not delete group.',
+  'groups.confirmDeleteEmpty': 'Delete the "{name}" group?',
+  'groups.confirmDeleteWithCats':
+    'Delete the "{name}" group? Its {count} categories will move to the General group.',
 
   // Templates (NewEvent template picker + applied group/category names)
   'templates.pickTitle': 'Start from a template',
@@ -678,6 +685,13 @@ const hi: Partial<Record<TKey, string>> = {
     'सभी कैटेगरी अभी "General" समूह में हैं। रिसेप्शन, बारात जैसे समूह बनाकर व्यवस्थित करें।',
   'groups.expandAll': 'सभी खोलें',
   'groups.collapseAll': 'सभी बंद करें',
+  'groups.renameGroup': 'समूह का नाम बदलें',
+  'groups.deleteGroup': 'समूह हटाएँ',
+  'groups.couldNotSave': 'समूह सहेज नहीं पाए।',
+  'groups.couldNotDelete': 'समूह हटा नहीं पाए।',
+  'groups.confirmDeleteEmpty': '"{name}" समूह हटाएँ?',
+  'groups.confirmDeleteWithCats':
+    '"{name}" समूह हटाएँ? इसकी {count} कैटेगरी General समूह में चली जाएँगी।',
 
   // Templates
   'templates.pickTitle': 'टेम्पलेट से शुरू करें',

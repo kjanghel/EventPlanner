@@ -377,6 +377,69 @@ export async function updateCategoryGroup(
   return data as CategoryGroup
 }
 
+// Convention: a group whose name (case-insensitive) is "General" is the
+// fallback bucket. It cannot be renamed or deleted from the UI, and is
+// auto-created when a non-empty group is deleted.
+export const GENERAL_GROUP_NAME = 'General'
+
+export function isGeneralGroup(group: { name: string }): boolean {
+  return group.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase()
+}
+
+// Find an event's General group; create one if missing. Used as the
+// cascade target when deleting a non-empty group.
+export async function findOrCreateGeneralGroup(eventId: string): Promise<CategoryGroup> {
+  const existing = await supabase
+    .from('category_groups')
+    .select('*')
+    .eq('event_id', eventId)
+    .is('deleted_at', null)
+    .ilike('name', GENERAL_GROUP_NAME)
+    .limit(1)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  if (existing.data) return existing.data as CategoryGroup
+  return createCategoryGroup(eventId, { name: GENERAL_GROUP_NAME })
+}
+
+// Delete a group, moving any categories under it into the event's General
+// group first. Refuses to delete the General group itself. The two writes
+// are sequential (move, then delete) — small data, no real concurrency
+// concern for a single planner.
+export async function deleteCategoryGroupCascading(
+  groupId: string,
+  eventId: string,
+): Promise<void> {
+  const target = await supabase
+    .from('category_groups')
+    .select('*')
+    .eq('id', groupId)
+    .maybeSingle()
+  if (target.error) throw target.error
+  if (!target.data) throw new Error('Group not found')
+  if (isGeneralGroup(target.data as CategoryGroup)) {
+    throw new Error('Cannot delete the General group')
+  }
+
+  const general = await findOrCreateGeneralGroup(eventId)
+  if (general.id !== groupId) {
+    const move = await supabase
+      .from('categories')
+      .update({ group_id: general.id })
+      .eq('group_id', groupId)
+    if (move.error) {
+      void logError('deleteCategoryGroupCascading.move', move.error, { groupId, eventId })
+      throw move.error
+    }
+  }
+
+  const del = await supabase.from('category_groups').delete().eq('id', groupId)
+  if (del.error) {
+    void logError('deleteCategoryGroupCascading.delete', del.error, { groupId, eventId })
+    throw del.error
+  }
+}
+
 // Hard delete. FK is ON DELETE RESTRICT so this fails if any categories
 // still reference the group — callers must move/delete them first.
 export async function deleteCategoryGroup(id: string): Promise<void> {

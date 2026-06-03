@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import {
+  deleteCategory,
+  deleteCategoryGroupCascading,
+  isGeneralGroup,
   listCategories,
   listCategoryGroups,
+  updateCategoryGroup,
   type CategoryGroup,
   type CategoryTotals,
-  deleteCategory,
 } from '../../lib/queries'
 import { CategoryFormSheet } from './CategoryFormSheet'
 import { GroupFormSheet } from './GroupFormSheet'
@@ -14,12 +17,15 @@ import type { EventOutletContext } from '../events/EventHome'
 import { formatAmount, useT } from '../../lib/i18n'
 
 const HINT_KEY_PREFIX = 'groupsHintDismissed:'
+// Use sessionStorage so the user's expand/collapse choices survive
+// tab-to-tab navigation within the event but reset on full page refresh.
+// That matches the explicit ask: every refresh starts collapsed.
 const EXPANDED_KEY_PREFIX = 'groupsExpanded:'
 
 function readExpanded(eventId: string | undefined): Set<string> | null {
   if (!eventId) return null
   try {
-    const v = localStorage.getItem(EXPANDED_KEY_PREFIX + eventId)
+    const v = sessionStorage.getItem(EXPANDED_KEY_PREFIX + eventId)
     if (!v) return null
     const arr = JSON.parse(v) as string[]
     return new Set(arr)
@@ -31,7 +37,7 @@ function readExpanded(eventId: string | undefined): Set<string> | null {
 function writeExpanded(eventId: string | undefined, set: Set<string>) {
   if (!eventId) return
   try {
-    localStorage.setItem(EXPANDED_KEY_PREFIX + eventId, JSON.stringify([...set]))
+    sessionStorage.setItem(EXPANDED_KEY_PREFIX + eventId, JSON.stringify([...set]))
   } catch {
     /* ignore */
   }
@@ -46,12 +52,14 @@ export function CategoriesList() {
   const [error, setError] = useState<string | null>(null)
   const [addCategoryToGroup, setAddCategoryToGroup] = useState<string | null>(null)
   const [showGroupForm, setShowGroupForm] = useState(false)
+  // No stored state ⇒ all groups collapsed. State only lives for this
+  // session — refresh / browser close starts collapsed again.
   const [expanded, setExpanded] = useState<Set<string>>(
     () => readExpanded(eventId) ?? new Set(),
   )
-  // On first ever load (no stored state yet) we expand everything so the
-  // user sees structure. After they interact, their choices persist.
-  const firstLoadDone = useRef(false)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editGroupName, setEditGroupName] = useState('')
+  const [savingGroup, setSavingGroup] = useState(false)
   const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
     if (!eventId) return true
     try {
@@ -79,16 +87,6 @@ export function CategoriesList() {
         if (!isMounted) return
         setGroups(g)
         setCategories(c)
-        // First-time defaults: expand all groups if the user has no stored
-        // preference yet. After this run, persistence kicks in.
-        if (!firstLoadDone.current) {
-          firstLoadDone.current = true
-          if (readExpanded(eventId) === null) {
-            const all = new Set(g.map((x) => x.id))
-            setExpanded(all)
-            writeExpanded(eventId, all)
-          }
-        }
       })
       .catch((e) => {
         if (isMounted) setError(e instanceof Error ? e.message : String(e))
@@ -181,6 +179,63 @@ export function CategoriesList() {
     setAddCategoryToGroup(null)
   }
 
+  const startEditGroup = (group: CategoryGroup) => {
+    setEditingGroupId(group.id)
+    setEditGroupName(group.name)
+  }
+
+  const cancelEditGroup = () => {
+    setEditingGroupId(null)
+    setEditGroupName('')
+  }
+
+  const saveEditGroup = async (groupId: string) => {
+    const trimmed = editGroupName.trim()
+    if (!trimmed) return
+    setSavingGroup(true)
+    try {
+      const updated = await updateCategoryGroup(groupId, { name: trimmed })
+      setGroups((prev) =>
+        prev?.map((g) => (g.id === groupId ? updated : g)) ?? null,
+      )
+      setEditingGroupId(null)
+      setEditGroupName('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('groups.couldNotSave'))
+    } finally {
+      setSavingGroup(false)
+    }
+  }
+
+  const handleDeleteGroup = async (group: CategoryGroup) => {
+    if (!eventId) return
+    const cats = grouped.get(group.id) ?? []
+    const message =
+      cats.length === 0
+        ? t('groups.confirmDeleteEmpty', { name: group.name })
+        : t('groups.confirmDeleteWithCats', { name: group.name, count: cats.length })
+    if (!confirm(message)) return
+    try {
+      await deleteCategoryGroupCascading(group.id, eventId)
+      // Refetch — both groups (one removed, possibly General appearing)
+      // and categories (group_id reassigned) need to be fresh.
+      const [g, c] = await Promise.all([
+        listCategoryGroups(eventId),
+        listCategories(eventId),
+      ])
+      setGroups(g)
+      setCategories(c)
+      setExpanded((prev) => {
+        const next = new Set(prev)
+        next.delete(group.id)
+        writeExpanded(eventId, next)
+        return next
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('groups.couldNotDelete'))
+    }
+  }
+
   const handleGroupAdded = (group: CategoryGroup) => {
     setGroups((prev) =>
       [...(prev ?? []), group].sort((a, b) => a.sort_order - b.sort_order),
@@ -271,35 +326,83 @@ export function CategoriesList() {
             }}
             className="bg-white rounded-lg border border-slate-200 overflow-hidden scroll-mt-20"
           >
-            <button
-              onClick={() => toggleGroup(group.id)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 [touch-action:manipulation]"
-              aria-expanded={isOpen}
-            >
-              <span className="shrink-0 text-slate-400">
-                {isOpen ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold text-slate-700 truncate">
-                    {group.name}
-                    <span className="ml-1.5 text-[11px] font-normal text-slate-400">
-                      ({cats.length})
-                    </span>
-                  </h2>
-                  <span className="text-[11px] font-mono text-slate-500 shrink-0">
-                    ₹{formatAmount(groupPaid)}
-                    {groupPlanned > 0 && (
-                      <span className="text-slate-400"> / ₹{formatAmount(groupPlanned)}</span>
+            {editingGroupId === group.id ? (
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+                <input
+                  autoFocus
+                  value={editGroupName}
+                  onChange={(e) => setEditGroupName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEditGroup(group.id)
+                    else if (e.key === 'Escape') cancelEditGroup()
+                  }}
+                  className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <button
+                  onClick={() => saveEditGroup(group.id)}
+                  disabled={savingGroup || !editGroupName.trim()}
+                  className="text-xs bg-teal-600 text-white rounded-lg px-2.5 py-1.5 font-medium disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {savingGroup ? t('common.saving') : t('common.save')}
+                </button>
+                <button
+                  onClick={cancelEditGroup}
+                  className="text-xs text-slate-600 px-2 py-1.5 [touch-action:manipulation]"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center px-3 py-2.5 hover:bg-slate-50">
+                <button
+                  onClick={() => toggleGroup(group.id)}
+                  className="flex-1 flex items-center gap-2 text-left min-w-0 [touch-action:manipulation]"
+                  aria-expanded={isOpen}
+                >
+                  <span className="shrink-0 text-slate-400">
+                    {isOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
                     )}
                   </span>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-slate-700 truncate">
+                        {group.name}
+                        <span className="ml-1.5 text-[11px] font-normal text-slate-400">
+                          ({cats.length})
+                        </span>
+                      </h2>
+                      <span className="text-[11px] font-mono text-slate-500 shrink-0">
+                        ₹{formatAmount(groupPaid)}
+                        {groupPlanned > 0 && (
+                          <span className="text-slate-400"> / ₹{formatAmount(groupPlanned)}</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+                {!isGeneralGroup(group) && (
+                  <div className="flex items-center gap-1 pl-2 shrink-0">
+                    <button
+                      onClick={() => startEditGroup(group)}
+                      className="text-slate-400 hover:text-slate-700 p-1.5 [touch-action:manipulation]"
+                      aria-label={t('groups.renameGroup')}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGroup(group)}
+                      className="text-slate-400 hover:text-red-700 p-1.5 [touch-action:manipulation]"
+                      aria-label={t('groups.deleteGroup')}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
-            </button>
+            )}
 
             {isOpen && (
               <div className="border-t border-slate-100 p-3 space-y-2 bg-slate-50/40">
