@@ -4,11 +4,12 @@ import { useT } from '../../lib/i18n'
 
 interface CategoryFormSheetProps {
   eventId: string
+  groupId: string
   onAdded: (category: CategoryTotals) => void
   onClose: () => void
 }
 
-export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormSheetProps) {
+export function CategoryFormSheet({ eventId, groupId, onAdded, onClose }: CategoryFormSheetProps) {
   const t = useT()
   const [name, setName] = useState('')
   const [planned, setPlanned] = useState('')
@@ -25,6 +26,7 @@ export function CategoryFormSheet({ eventId, onAdded, onClose }: CategoryFormShe
     try {
       const data = await createCategory(eventId, {
         name,
+        group_id: groupId,
         planned_amount: planned ? parseFloat(planned) : null,
         confirmed_amount: confirmed ? parseFloat(confirmed) : null,
         note: note.trim() || null,

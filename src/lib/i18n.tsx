@@ -296,6 +296,23 @@ const en = {
   'quickAdd.noPeopleHint': 'Add a person on the People tab first.',
   'quickAdd.receipt': 'Receipt',
   'quickAdd.note': 'Note',
+
+  // Common — additions for groups feature
+  'common.dismiss': 'Dismiss',
+
+  // Categories — additions for groups feature
+  'categories.add': 'Add',
+
+  // Category groups (Reception / Barat / Haldi sub-events)
+  'groups.addGroup': 'Add group',
+  'groups.groupName': 'Group name',
+  'groups.namePlaceholder': 'e.g. Reception',
+  'groups.adding': 'Adding…',
+  'groups.couldNotAdd': 'Could not add group.',
+  'groups.summary': 'Paid ₹{paid} · Planned ₹{planned}',
+  'groups.hint.title': 'Tip',
+  'groups.hint.body':
+    "Your categories are in one 'General' group. Add groups like 'Reception' or 'Barat' to organise them.",
 } as const
 
 export type TKey = keyof typeof en
@@ -585,6 +602,23 @@ const hi: Partial<Record<TKey, string>> = {
   'quickAdd.noPeopleHint': 'पहले "लोग" टैब से व्यक्ति जोड़ें।',
   'quickAdd.receipt': 'रसीद',
   'quickAdd.note': 'नोट',
+
+  // Common
+  'common.dismiss': 'बंद करें',
+
+  // Categories — groups addition
+  'categories.add': 'जोड़ें',
+
+  // Category groups
+  'groups.addGroup': 'समूह जोड़ें',
+  'groups.groupName': 'समूह का नाम',
+  'groups.namePlaceholder': 'जैसे रिसेप्शन',
+  'groups.adding': 'जोड़ रहे हैं…',
+  'groups.couldNotAdd': 'समूह नहीं जोड़ पाए।',
+  'groups.summary': 'भुगतान ₹{paid} · योजना ₹{planned}',
+  'groups.hint.title': 'सुझाव',
+  'groups.hint.body':
+    'सभी कैटेगरी अभी "General" समूह में हैं। रिसेप्शन, बारात जैसे समूह बनाकर व्यवस्थित करें।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

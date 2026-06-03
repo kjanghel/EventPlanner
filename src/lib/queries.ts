@@ -36,9 +36,18 @@ export type Person = {
   phone_e164: string | null
 }
 
+export type CategoryGroup = {
+  id: string
+  event_id: string
+  name: string
+  sort_order: number
+  color: string | null
+}
+
 export type Category = {
   id: string
   event_id: string
+  group_id: string
   name: string
   planned_amount: number | null
   confirmed_amount: number | null
@@ -302,6 +311,82 @@ export async function deletePerson(id: string): Promise<void> {
 // Categories
 // =====================================================================
 
+// =====================================================================
+// Category Groups (Reception / Barat / Haldi / ...)
+// =====================================================================
+
+export async function listCategoryGroups(eventId: string): Promise<CategoryGroup[]> {
+  const { data, error } = await supabase
+    .from('category_groups')
+    .select('*')
+    .eq('event_id', eventId)
+    .is('deleted_at', null)
+    .order('sort_order')
+  if (error) throw error
+  return (data ?? []) as CategoryGroup[]
+}
+
+export async function createCategoryGroup(eventId: string, input: {
+  name: string
+  color?: string | null
+}): Promise<CategoryGroup> {
+  const maxOrder = await supabase
+    .from('category_groups')
+    .select('sort_order')
+    .eq('event_id', eventId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { data, error } = await supabase
+    .from('category_groups')
+    .insert({
+      event_id: eventId,
+      name: input.name.trim(),
+      color: input.color ?? null,
+      sort_order: (maxOrder.data?.sort_order ?? -1) + 1,
+    })
+    .select('*')
+    .single()
+  if (error) {
+    void logError('createCategoryGroup', error, { eventId, input }, eventId)
+    throw error
+  }
+  return data as CategoryGroup
+}
+
+export async function updateCategoryGroup(
+  id: string,
+  input: { name?: string; color?: string | null; sort_order?: number },
+): Promise<CategoryGroup> {
+  const updates: Record<string, unknown> = {}
+  if (input.name !== undefined) updates.name = input.name.trim()
+  if (input.color !== undefined) updates.color = input.color
+  if (input.sort_order !== undefined) updates.sort_order = input.sort_order
+
+  const { data, error } = await supabase
+    .from('category_groups')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) {
+    void logError('updateCategoryGroup', error, { id, updates })
+    throw error
+  }
+  return data as CategoryGroup
+}
+
+// Hard delete. FK is ON DELETE RESTRICT so this fails if any categories
+// still reference the group — callers must move/delete them first.
+export async function deleteCategoryGroup(id: string): Promise<void> {
+  const { error } = await supabase.from('category_groups').delete().eq('id', id)
+  if (error) {
+    void logError('deleteCategoryGroup', error, { id })
+    throw error
+  }
+}
+
 export async function listCategories(eventId: string): Promise<CategoryTotals[]> {
   const { data, error } = await supabase
     .from('category_totals')
@@ -324,6 +409,7 @@ export async function getCategoryTotals(categoryId: string): Promise<CategoryTot
 
 export async function createCategory(eventId: string, input: {
   name: string
+  group_id: string
   planned_amount?: number | null
   confirmed_amount?: number | null
   note?: string | null
@@ -340,6 +426,7 @@ export async function createCategory(eventId: string, input: {
     .from('categories')
     .insert({
       event_id: eventId,
+      group_id: input.group_id,
       name: input.name.trim(),
       planned_amount: input.planned_amount ?? null,
       confirmed_amount: input.confirmed_amount ?? null,
@@ -359,6 +446,7 @@ export async function updateCategory(
   id: string,
   input: {
     name?: string
+    group_id?: string
     planned_amount?: number | null
     confirmed_amount?: number | null
     note?: string | null
@@ -366,6 +454,7 @@ export async function updateCategory(
 ): Promise<Category> {
   const updates: Record<string, unknown> = {}
   if (input.name !== undefined) updates.name = input.name.trim()
+  if (input.group_id !== undefined) updates.group_id = input.group_id
   if (input.planned_amount !== undefined) updates.planned_amount = input.planned_amount
   if (input.confirmed_amount !== undefined) updates.confirmed_amount = input.confirmed_amount
   if (input.note !== undefined) updates.note = input.note
