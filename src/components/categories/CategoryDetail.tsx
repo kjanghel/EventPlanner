@@ -6,6 +6,7 @@ import {
   listTransactions,
   listScheduledPayments,
   listPeople,
+  listCategoryGroups,
   getCategoryTotals,
   updateCategory,
   deleteTransaction,
@@ -13,6 +14,7 @@ import {
   type Transaction,
   type ScheduledPayment,
   type Person,
+  type CategoryGroup,
   type CategoryTotals,
 } from '../../lib/queries'
 import { TransactionFormSheet } from './TransactionFormSheet'
@@ -29,12 +31,14 @@ export function CategoryDetail() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [scheduled, setScheduled] = useState<ScheduledPayment[] | null>(null)
   const [people, setPeople] = useState<Person[]>([])
+  const [groups, setGroups] = useState<CategoryGroup[]>([])
   const [error, setError] = useState<string | null>(null)
   const [showTxnForm, setShowTxnForm] = useState(false)
   const [showScheduledForm, setShowScheduledForm] = useState(false)
   const [markPaidFor, setMarkPaidFor] = useState<ScheduledPayment | null>(null)
   const [editingCategory, setEditingCategory] = useState(false)
   const [editName, setEditName] = useState('')
+  const [editGroupId, setEditGroupId] = useState('')
   const [editPlanned, setEditPlanned] = useState('')
   const [editConfirmed, setEditConfirmed] = useState('')
   const [editNote, setEditNote] = useState('')
@@ -48,6 +52,7 @@ export function CategoryDetail() {
       listTransactions(catId).then(setTransactions),
       listScheduledPayments(catId).then(setScheduled),
       listPeople(eventId).then(setPeople),
+      listCategoryGroups(eventId).then(setGroups),
     ]).catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [catId, eventId, refreshTick])
 
@@ -85,6 +90,7 @@ export function CategoryDetail() {
   const startEditCategory = () => {
     if (!category) return
     setEditName(category.name)
+    setEditGroupId(category.group_id)
     setEditPlanned(category.planned_amount != null ? String(category.planned_amount) : '')
     setEditConfirmed(category.confirmed_amount != null ? String(category.confirmed_amount) : '')
     setEditNote(category.note ?? '')
@@ -99,6 +105,7 @@ export function CategoryDetail() {
     try {
       const updated = await updateCategory(catId, {
         name: editName,
+        group_id: editGroupId || undefined,
         planned_amount: editPlanned.trim() ? parseFloat(editPlanned) : null,
         confirmed_amount: editConfirmed.trim() ? parseFloat(editConfirmed) : null,
         note: editNote.trim() ? editNote : null,
@@ -121,9 +128,16 @@ export function CategoryDetail() {
           {editingCategory ? (
             <span className="text-xs text-slate-500">{t('categories.editingCategory')}</span>
           ) : (
-            <h2 className="text-base font-semibold truncate">
-              {category?.name ?? t('categories.categoryFallback')}
-            </h2>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold truncate">
+                {category?.name ?? t('categories.categoryFallback')}
+              </h2>
+              {category && (
+                <p className="text-[11px] text-slate-500 truncate">
+                  {groups.find((g) => g.id === category.group_id)?.name ?? ''}
+                </p>
+              )}
+            </div>
           )}
           <div className="flex items-center gap-3 shrink-0">
             {!editingCategory && category && (
@@ -178,6 +192,24 @@ export function CategoryDetail() {
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
+            {groups.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  {t('categories.group')}
+                </label>
+                <select
+                  value={editGroupId}
+                  onChange={(e) => setEditGroupId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">{t('categories.plannedAmount')}</label>

@@ -303,6 +303,7 @@ const en = {
 
   // Categories — additions for groups feature
   'categories.add': 'Add',
+  'categories.group': 'Group',
 
   // Category groups (Reception / Barat / Haldi sub-events)
   'groups.addGroup': 'Add group',
@@ -661,6 +662,7 @@ const hi: Partial<Record<TKey, string>> = {
 
   // Categories — groups addition
   'categories.add': 'जोड़ें',
+  'categories.group': 'समूह',
 
   // Category groups
   'groups.addGroup': 'समूह जोड़ें',
