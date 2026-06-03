@@ -315,6 +315,8 @@ const en = {
   'groups.hint.title': 'Tip',
   'groups.hint.body':
     "Your categories are in one 'General' group. Add groups like 'Reception' or 'Barat' to organise them.",
+  'groups.expandAll': 'Expand all',
+  'groups.collapseAll': 'Collapse all',
 
   // Templates (NewEvent template picker + applied group/category names)
   'templates.pickTitle': 'Start from a template',
@@ -674,6 +676,8 @@ const hi: Partial<Record<TKey, string>> = {
   'groups.hint.title': 'सुझाव',
   'groups.hint.body':
     'सभी कैटेगरी अभी "General" समूह में हैं। रिसेप्शन, बारात जैसे समूह बनाकर व्यवस्थित करें।',
+  'groups.expandAll': 'सभी खोलें',
+  'groups.collapseAll': 'सभी बंद करें',
 
   // Templates
   'templates.pickTitle': 'टेम्पलेट से शुरू करें',
