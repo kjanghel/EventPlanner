@@ -50,6 +50,58 @@ Dashboard → Edge Functions → **Create a new function**:
 - Paste contents of [index.ts](./index.ts)
 - Deploy
 
+## Important: Resend's onboarding-domain restriction
+
+If you're using `RESEND_FROM=onboarding@resend.dev` (no domain verified),
+Resend will reject any recipient that isn't the **account-owner's email
+address**. This is a Resend safety feature against spam abuse, not a bug
+in this function. You'll see errors like:
+
+```
+"Invalid `to` field. Please use our testing email address instead of
+domains like `example.com`."
+```
+
+You have two ways forward:
+
+**Option A — Test with your own email only (no domain setup needed)**
+
+Use the `test_to` parameter to bypass the user sweep and send to a single
+address. Since that address is your Resend account email, the onboarding
+domain will deliver fine. See "Test send to one address" below.
+
+**Option B — Verify a domain in Resend (proper fix)**
+
+Resend → Domains → Add Domain → enter a domain you own → add the DNS
+records they show you → wait ~5 min for verification. Then change
+`RESEND_FROM` in your Supabase secrets to e.g. `hello@yourdomain.com`.
+
+## Test send to one address
+
+Send to just one email (yours) without touching `auth.users`. Useful for
+previewing the rendered email AND for working around the onboarding-domain
+restriction.
+
+```sh
+curl -X POST "https://csgyhseofrdtxmmpgtmy.supabase.co/functions/v1/send-broadcast-email" \
+  -H "Authorization: Bearer <cron-secret>" \
+  -H "Content-Type: application/json" \
+  --data-binary @- <<'EOF'
+{
+  "subject": "Daily reminders are now live",
+  "html": "<p>Test render — open the app and enable reminders in Settings.</p>",
+  "text": "Test render — open the app and enable reminders in Settings.",
+  "test_to": "your-email@example.com"
+}
+EOF
+```
+
+`test_to` also accepts an array if you want to send to a small set of
+addresses, e.g. `"test_to": ["you@example.com", "spouse@example.com"]`.
+
+When `test_to` is present, the function skips the auth.users query
+entirely and sends only to the listed addresses.
+
 ## 6. Dry-run preview (recommended before first send)
 
 Counts your audience without sending. Replace `<cron-secret>` with your

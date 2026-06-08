@@ -42,6 +42,12 @@ type BroadcastBody = {
   html?: string
   text?: string
   preview_only?: boolean
+  // Optional override: send ONLY to these explicit addresses, skipping
+  // the auth.users sweep. Used for previewing rendered email content
+  // before doing a real broadcast — and also the only way to test when
+  // Resend's onboarding domain is in use, since it can only deliver to
+  // the account-owner's email.
+  test_to?: string | string[]
 }
 
 // Resend's send endpoint can take a batch of up to 100 messages per call.
@@ -116,23 +122,40 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false },
   })
 
-  // Fetch every user. listUsers paginates at 1000/page by default — fine
-  // for free-tier projects with hundreds of users. For more, loop pages.
-  const allEmails: string[] = []
-  let page = 1
-  while (true) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error) {
+  let allEmails: string[] = []
+
+  if (body.test_to) {
+    // Explicit override path: short-circuit the listUsers sweep and send
+    // only to the addresses the caller specified. Normalise to a deduped
+    // array. Empty/garbage strings dropped.
+    const raw = Array.isArray(body.test_to) ? body.test_to : [body.test_to]
+    allEmails = Array.from(
+      new Set(raw.map((e) => e.trim()).filter((e) => e.length > 0 && e.includes('@'))),
+    )
+    if (allEmails.length === 0) {
       return new Response(
-        JSON.stringify({ ok: false, reason: `listUsers failed: ${error.message}` }),
-        { status: 500, headers: { 'content-type': 'application/json' } },
+        JSON.stringify({ ok: false, reason: 'test_to provided but no valid addresses' }),
+        { status: 400, headers: { 'content-type': 'application/json' } },
       )
     }
-    for (const u of data.users) {
-      if (u.email && u.email_confirmed_at) allEmails.push(u.email)
+  } else {
+    // Fetch every user. listUsers paginates at 1000/page by default — fine
+    // for free-tier projects with hundreds of users. For more, loop pages.
+    let page = 1
+    while (true) {
+      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+      if (error) {
+        return new Response(
+          JSON.stringify({ ok: false, reason: `listUsers failed: ${error.message}` }),
+          { status: 500, headers: { 'content-type': 'application/json' } },
+        )
+      }
+      for (const u of data.users) {
+        if (u.email && u.email_confirmed_at) allEmails.push(u.email)
+      }
+      if (data.users.length < 1000) break
+      page++
     }
-    if (data.users.length < 1000) break
-    page++
   }
 
   if (body.preview_only) {
