@@ -1,0 +1,25 @@
+{
+  "name": "Event Planner",
+  "short_name": "EventPlanner",
+  "description": "Plan and track spends for weddings, birthdays, concerts and any event with multiple people paying.",
+  "start_url": "/EventPlanner/",
+  "scope": "/EventPlanner/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/EventPlanner/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/EventPlanner/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

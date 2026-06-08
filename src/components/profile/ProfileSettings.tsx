@@ -3,6 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { updateMyProfile } from '../../lib/queries'
 import { LOCALE_LABELS, useLocale, type Locale } from '../../lib/i18n'
+import {
+  canUseWebPush,
+  hasVapidConfigured,
+  isPushEnabled,
+  requestPermissionAndSubscribe,
+  unsubscribeFromPush,
+} from '../../lib/notifications'
 
 export function ProfileSettings() {
   const { user, profile, refreshProfile } = useAuth()
@@ -142,6 +149,8 @@ export function ProfileSettings() {
           <p className="text-xs text-slate-400 mt-2">{t('profile.languageHelp')}</p>
         </section>
 
+        <NotificationsSection />
+
         <Link
           to="/events"
           className="block text-center text-xs text-slate-500"
@@ -150,5 +159,73 @@ export function ProfileSettings() {
         </Link>
       </main>
     </div>
+  )
+}
+
+function NotificationsSection() {
+  const { t } = useLocale()
+  const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const supported = canUseWebPush() && hasVapidConfigured()
+
+  useEffect(() => {
+    if (!supported) return
+    let cancelled = false
+    isPushEnabled().then((v) => {
+      if (!cancelled) setEnabled(v)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [supported])
+
+  if (!supported) return null
+
+  const handleToggle = async () => {
+    setError(null)
+    setBusy(true)
+    try {
+      if (enabled) {
+        await unsubscribeFromPush()
+        setEnabled(false)
+      } else {
+        const result = await requestPermissionAndSubscribe()
+        if (result.ok) {
+          setEnabled(true)
+        } else if (result.reason === 'permission-denied') {
+          setError(t('notifications.settings.permissionDeniedHint'))
+        } else {
+          setError(t('notifications.errorGeneric'))
+        }
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h2 className="text-sm font-semibold mb-1">{t('notifications.settings.title')}</h2>
+      <p className="text-xs text-slate-500 mb-3">{t('notifications.settings.body')}</p>
+      <button
+        type="button"
+        onClick={handleToggle}
+        disabled={busy || enabled === null}
+        className={`w-full rounded-lg py-2.5 px-3 text-sm font-medium border [touch-action:manipulation] disabled:opacity-50 ${
+          enabled
+            ? 'border-slate-200 bg-slate-50 text-slate-700'
+            : 'border-teal-600 bg-teal-600 text-white'
+        }`}
+      >
+        {busy
+          ? t('common.saving')
+          : enabled
+          ? t('notifications.settings.disable')
+          : t('notifications.settings.enable')}
+      </button>
+      {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2 mt-2">{error}</p>}
+    </section>
   )
 }

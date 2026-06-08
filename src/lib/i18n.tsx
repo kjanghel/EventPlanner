@@ -375,6 +375,28 @@ const en = {
   'summary.spendOverTime': 'Spend over time',
   'summary.topSpenders': 'Top spenders',
   'summary.legendRemaining': 'Remaining',
+
+  // Notifications (Web Push)
+  'notifications.modal.title': 'Get daily reminders?',
+  'notifications.modal.body':
+    "Don't forget to log today's spends. We'll send a quick nudge at 8 pm so the budget stays current.",
+  'notifications.modal.enable': 'Enable reminders',
+  'notifications.modal.enabling': 'Enabling…',
+  'notifications.modal.skipForNow': 'Skip for now',
+  'notifications.modal.notNow': "Don't ask again",
+  'notifications.errorUnsupported': 'This browser does not support push notifications.',
+  'notifications.errorNoVapid': 'Notifications are not configured for this build yet.',
+  'notifications.errorPermissionDenied':
+    'Permission was denied. You can re-enable from your browser settings.',
+  'notifications.errorNoUser': 'You need to be signed in.',
+  'notifications.errorGeneric': 'Could not enable notifications. Please try again.',
+  'notifications.settings.title': 'Daily reminders',
+  'notifications.settings.body':
+    'A quick notification at 8 pm IST asking if you spent anything today.',
+  'notifications.settings.enable': 'Enable reminders',
+  'notifications.settings.disable': 'Disable reminders',
+  'notifications.settings.permissionDeniedHint':
+    'Notifications are blocked in your browser. Unblock them in the site settings, then come back.',
 } as const
 
 export type TKey = keyof typeof en
@@ -742,6 +764,28 @@ const hi: Partial<Record<TKey, string>> = {
   'summary.spendOverTime': 'समय के साथ खर्च',
   'summary.topSpenders': 'सबसे ज़्यादा खर्च करने वाले',
   'summary.legendRemaining': 'बचा हुआ',
+
+  // Notifications
+  'notifications.modal.title': 'क्या रोज़ रिमाइंडर चाहिए?',
+  'notifications.modal.body':
+    'आज के खर्च दर्ज करना न भूलें। शाम 8 बजे एक छोटा रिमाइंडर भेजेंगे ताकि बजट सही रहे।',
+  'notifications.modal.enable': 'रिमाइंडर चालू करें',
+  'notifications.modal.enabling': 'चालू कर रहे हैं…',
+  'notifications.modal.skipForNow': 'अभी छोड़ें',
+  'notifications.modal.notNow': 'फिर मत पूछें',
+  'notifications.errorUnsupported': 'यह ब्राउज़र पुश नोटिफिकेशन समर्थन नहीं करता।',
+  'notifications.errorNoVapid': 'इस बिल्ड में नोटिफिकेशन सेटअप नहीं हैं।',
+  'notifications.errorPermissionDenied':
+    'अनुमति नहीं मिली। ब्राउज़र सेटिंग से फिर से चालू कर सकते हैं।',
+  'notifications.errorNoUser': 'पहले साइन इन करें।',
+  'notifications.errorGeneric': 'नोटिफिकेशन चालू नहीं हो पाए। फिर कोशिश करें।',
+  'notifications.settings.title': 'रोज़ का रिमाइंडर',
+  'notifications.settings.body':
+    'शाम 8 बजे IST पर एक छोटा नोटिफिकेशन — आज कोई खर्च हुआ क्या?',
+  'notifications.settings.enable': 'रिमाइंडर चालू करें',
+  'notifications.settings.disable': 'रिमाइंडर बंद करें',
+  'notifications.settings.permissionDeniedHint':
+    'ब्राउज़र में नोटिफिकेशन ब्लॉक हैं। साइट सेटिंग से अनब्लॉक करें।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

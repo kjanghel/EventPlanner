@@ -5,6 +5,18 @@ import { useAuth } from '../../lib/auth'
 import { UpcomingBanner } from './UpcomingBanner'
 import { Brand } from '../brand/Logo'
 import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
+import {
+  canUseWebPush,
+  hasVapidConfigured,
+  isPushEnabled,
+} from '../../lib/notifications'
+import { EnableNotificationsModal } from '../notifications/EnableNotificationsModal'
+
+// Persistent ("never ask me again") dismissal lives in localStorage.
+// Session dismissal ("skip for now") lives in sessionStorage — re-shown
+// on browser reopen.
+const NEVER_KEY = 'notifications.neverPrompt'
+const SESSION_KEY = 'notifications.dismissedThisSession'
 
 function firstName(name: string | null | undefined, fallback: string) {
   if (!name) return fallback
@@ -26,6 +38,7 @@ export function EventsList() {
   const [error, setError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -62,11 +75,48 @@ export function EventsList() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [menuOpen])
 
+  // Notifications opt-in prompt: show once per browser session when the
+  // user lands on the events list, unless they're already subscribed,
+  // have permanently dismissed, or the browser can't do push at all.
+  useEffect(() => {
+    if (!session) return
+    if (!canUseWebPush() || !hasVapidConfigured()) return
+    try {
+      if (localStorage.getItem(NEVER_KEY) === '1') return
+      if (sessionStorage.getItem(SESSION_KEY) === '1') return
+    } catch {
+      return
+    }
+    let cancelled = false
+    isPushEnabled().then((enabled) => {
+      if (!cancelled && !enabled) setShowNotifPrompt(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  const dismissNotifPrompt = (mode: 'dismiss' | 'never') => {
+    try {
+      if (mode === 'never') localStorage.setItem(NEVER_KEY, '1')
+      else sessionStorage.setItem(SESSION_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setShowNotifPrompt(false)
+  }
+
   const email = session?.user?.email ?? null
   const greetingName = firstName(profile?.display_name, email?.split('@')[0] ?? 'there')
 
   return (
     <div className="min-h-full flex flex-col bg-slate-50">
+      {showNotifPrompt && (
+        <EnableNotificationsModal
+          onClose={() => setShowNotifPrompt(false)}
+          onDismiss={dismissNotifPrompt}
+        />
+      )}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <Brand />
