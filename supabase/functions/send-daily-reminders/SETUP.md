@@ -46,6 +46,10 @@ add:
 - `VAPID_PUBLIC_KEY` — same public key as step 2
 - `VAPID_PRIVATE_KEY` — the private key from step 2
 - `VAPID_SUBJECT` — `mailto:you@example.com` (your email)
+- `CRON_SECRET` — a random string only pg_cron will know. Generate one with
+  `openssl rand -base64 32` (or any password generator). The function
+  rejects every request that doesn't include this in the `Authorization`
+  header — without it the endpoint is public on the internet.
 
 Or via the CLI:
 
@@ -53,6 +57,7 @@ Or via the CLI:
 supabase secrets set VAPID_PUBLIC_KEY=...
 supabase secrets set VAPID_PRIVATE_KEY=...
 supabase secrets set VAPID_SUBJECT=mailto:you@example.com
+supabase secrets set CRON_SECRET="$(openssl rand -base64 32)"
 ```
 
 ## 5. Deploy the Edge Function
@@ -68,7 +73,8 @@ itself, never exposes it to callers.
 ## 6. Schedule the cron
 
 In the Supabase SQL editor, replace `<project-ref>` with your project ref
-(found in Project Settings → General) and run:
+(found in Project Settings → General) and `<cron-secret>` with the same
+random value you set as `CRON_SECRET` in step 4:
 
 ```sql
 create extension if not exists pg_cron;
@@ -80,11 +86,17 @@ select cron.schedule(
   $$
     select net.http_post(
       url := 'https://<project-ref>.supabase.co/functions/v1/send-daily-reminders',
-      headers := '{"Content-Type": "application/json"}'::jsonb
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer <cron-secret>'
+      )
     );
   $$
 );
 ```
+
+The pg_cron job table is only readable by the postgres superuser role on
+Supabase, so the secret stays private at rest.
 
 The function checks the UTC hour itself and only fans out notifications at
 14:00 UTC (= 8 pm IST). The other 23 invocations per day are no-op pings

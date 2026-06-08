@@ -28,6 +28,10 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY') ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
 const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:noreply@example.com'
+// Shared secret between this function and the pg_cron job that calls it.
+// Without it (or with the wrong value) we reject the request — so a public
+// caller can't spam pushes by hammering the endpoint.
+const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
 
 // 8 pm India Standard Time = 14:30 UTC. We compare the UTC hour so the
 // hourly cron pings everyone once a day at that hour.
@@ -61,7 +65,23 @@ function pickMessage(locale: string | null | undefined): { title: string; body: 
   return pool[idx]!
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req: Request) => {
+  // Fail closed: if the cron secret isn't set on the function we reject
+  // EVERY call, including legitimate cron. Better to be loudly broken
+  // than silently public.
+  if (!CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ ok: false, reason: 'CRON_SECRET not set in secrets' }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  if (req.headers.get('authorization') !== `Bearer ${CRON_SECRET}`) {
+    return new Response(
+      JSON.stringify({ ok: false, reason: 'forbidden' }),
+      { status: 403, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return new Response(
       JSON.stringify({ ok: false, reason: 'VAPID keys not set in secrets' }),
