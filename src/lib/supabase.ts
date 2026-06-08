@@ -22,5 +22,7 @@ export type Profile = {
   display_name: string | null
   phone_e164: string | null
   locale: 'en' | 'hi'
+  reminder_hour: number
+  reminder_tz: string
   created_at: string
 }

@@ -169,6 +169,8 @@ export async function getEvent(id: string): Promise<EventTotals | null> {
 export async function updateMyProfile(input: {
   display_name?: string | null
   phone_e164?: string | null
+  reminder_hour?: number
+  reminder_tz?: string
 }): Promise<void> {
   const { data: user } = await supabase.auth.getUser()
   if (!user.user) throw new Error('Not signed in')
@@ -180,6 +182,20 @@ export async function updateMyProfile(input: {
   if (input.phone_e164 !== undefined) {
     const trimmed = input.phone_e164?.trim()
     updates.phone_e164 = trimmed ? trimmed : null
+  }
+  if (input.reminder_hour !== undefined) {
+    if (
+      !Number.isInteger(input.reminder_hour) ||
+      input.reminder_hour < 0 ||
+      input.reminder_hour > 23
+    ) {
+      throw new Error('reminder_hour must be an integer 0–23')
+    }
+    updates.reminder_hour = input.reminder_hour
+  }
+  if (input.reminder_tz !== undefined) {
+    const trimmed = input.reminder_tz.trim()
+    if (trimmed) updates.reminder_tz = trimmed
   }
   if (Object.keys(updates).length === 0) return
   const { error } = await supabase

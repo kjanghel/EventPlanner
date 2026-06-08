@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { updateMyProfile } from '../../lib/queries'
@@ -8,6 +8,7 @@ import {
   hasVapidConfigured,
   isPushEnabled,
   requestPermissionAndSubscribe,
+  sendTestNotification,
   unsubscribeFromPush,
 } from '../../lib/notifications'
 
@@ -163,12 +164,17 @@ export function ProfileSettings() {
 }
 
 function NotificationsSection() {
+  const { profile, refreshProfile } = useAuth()
   const { t } = useLocale()
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testInfo, setTestInfo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [savingHour, setSavingHour] = useState(false)
 
   const supported = canUseWebPush() && hasVapidConfigured()
+  const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), [])
 
   useEffect(() => {
     if (!supported) return
@@ -205,8 +211,40 @@ function NotificationsSection() {
     }
   }
 
+  const handleTest = async () => {
+    setError(null)
+    setTestInfo(null)
+    setTesting(true)
+    const result = await sendTestNotification()
+    setTesting(false)
+    if (result.ok) {
+      setTestInfo(t('notifications.settings.testSent', { count: result.sent }))
+    } else {
+      setError(t('notifications.settings.testFailed', { reason: result.reason }))
+    }
+  }
+
+  const handleHourChange = async (next: number) => {
+    setError(null)
+    setSavingHour(true)
+    try {
+      await updateMyProfile({ reminder_hour: next })
+      await refreshProfile()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save')
+    } finally {
+      setSavingHour(false)
+    }
+  }
+
+  const formatHourLabel = (h: number) => {
+    const period = h < 12 ? 'AM' : 'PM'
+    const display = h % 12 === 0 ? 12 : h % 12
+    return `${display}:00 ${period}`
+  }
+
   return (
-    <section className="bg-white rounded-2xl border border-slate-200 p-4">
+    <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
       <h2 className="text-sm font-semibold mb-1">{t('notifications.settings.title')}</h2>
       <p className="text-xs text-slate-500 mb-3">{t('notifications.settings.body')}</p>
       <button
@@ -225,7 +263,43 @@ function NotificationsSection() {
           ? t('notifications.settings.disable')
           : t('notifications.settings.enable')}
       </button>
-      {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2 mt-2">{error}</p>}
+      {enabled && (
+        <>
+          <div className="pt-2">
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              {t('notifications.settings.reminderTime')}
+            </label>
+            <select
+              value={profile?.reminder_hour ?? 20}
+              onChange={(e) => handleHourChange(parseInt(e.target.value, 10))}
+              disabled={savingHour}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+            >
+              {hours.map((h) => (
+                <option key={h} value={h}>
+                  {formatHourLabel(h)}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {t('notifications.settings.reminderTimeHelp')}
+              {profile?.reminder_tz && (
+                <span className="text-slate-500"> ({profile.reminder_tz})</span>
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleTest}
+            disabled={testing}
+            className="w-full rounded-lg py-2 px-3 text-xs font-medium border border-slate-200 text-slate-700 [touch-action:manipulation] disabled:opacity-50"
+          >
+            {testing ? t('notifications.settings.testing') : t('notifications.settings.test')}
+          </button>
+        </>
+      )}
+      {testInfo && <p className="text-xs text-green-800 bg-green-50 rounded-lg p-2">{testInfo}</p>}
+      {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">{error}</p>}
     </section>
   )
 }

@@ -397,6 +397,13 @@ const en = {
   'notifications.settings.disable': 'Disable reminders',
   'notifications.settings.permissionDeniedHint':
     'Notifications are blocked in your browser. Unblock them in the site settings, then come back.',
+  'notifications.settings.test': 'Send test notification',
+  'notifications.settings.testing': 'Sending…',
+  'notifications.settings.testSent': 'Test sent to {count} device(s). Check your lock screen.',
+  'notifications.settings.testFailed': 'Test failed: {reason}',
+  'notifications.settings.reminderTime': 'Reminder time',
+  'notifications.settings.reminderTimeHelp':
+    "We'll send the daily nudge at this hour in your timezone.",
 } as const
 
 export type TKey = keyof typeof en
@@ -786,6 +793,13 @@ const hi: Partial<Record<TKey, string>> = {
   'notifications.settings.disable': 'रिमाइंडर बंद करें',
   'notifications.settings.permissionDeniedHint':
     'ब्राउज़र में नोटिफिकेशन ब्लॉक हैं। साइट सेटिंग से अनब्लॉक करें।',
+  'notifications.settings.test': 'टेस्ट नोटिफिकेशन भेजें',
+  'notifications.settings.testing': 'भेज रहे हैं…',
+  'notifications.settings.testSent': '{count} डिवाइस को टेस्ट भेजा। लॉक स्क्रीन देखें।',
+  'notifications.settings.testFailed': 'टेस्ट विफल: {reason}',
+  'notifications.settings.reminderTime': 'रिमाइंडर का समय',
+  'notifications.settings.reminderTimeHelp':
+    'आपके टाइमज़ोन में इस समय रोज़ का नोटिफिकेशन भेजा जाएगा।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

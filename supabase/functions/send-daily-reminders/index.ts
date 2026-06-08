@@ -1,22 +1,14 @@
 // Supabase Edge Function: send-daily-reminders
 //
-// Invoked hourly by pg_cron. Sends a Web Push notification to every device
-// in push_subscriptions ONLY when the trigger fires in the 8 pm IST hour
-// (= 14:30 UTC). The cron schedule keeps the function lightweight on every
-// hour but only one of the 24 calls per day actually fans out pushes.
+// Invoked hourly by pg_cron. Each invocation pulls every push_subscription
+// joined with its owner's profile (reminder_hour + reminder_tz) and sends
+// a notification only to users whose CURRENT local hour matches their
+// reminder_hour. So a user with reminder_hour=20 / reminder_tz='Asia/Kolkata'
+// gets a push during the UTC tick where 14:00 UTC = 19:30 IST → falls into
+// the 20 local-hour bucket on the next tick at 15:00 UTC = 20:30 IST. We
+// floor to the local hour so the 20:00–20:59 window all hits one push.
 //
-// Why hourly instead of "cron at 14:30 UTC" directly? pg_cron can do the
-// exact-minute schedule fine, but keeping the function gated on its own
-// clock check (a) makes it trivial to skip/test in the future and (b) makes
-// the schedule "drift-safe" if Supabase shifts cron tick offsets.
-//
-// Setup (one-time):
-//   supabase secrets set VAPID_PUBLIC_KEY=...      # from `npx web-push generate-vapid-keys`
-//   supabase secrets set VAPID_PRIVATE_KEY=...
-//   supabase secrets set VAPID_SUBJECT=mailto:you@example.com
-//   supabase functions deploy send-daily-reminders --no-verify-jwt
-//
-// Cron — see supabase/functions/send-daily-reminders/SETUP.md for the
+// Setup — see supabase/functions/send-daily-reminders/SETUP.md for the
 // exact SQL to run in the Supabase dashboard.
 
 // deno-lint-ignore-file no-explicit-any
@@ -33,11 +25,28 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:noreply@example.c
 // caller can't spam pushes by hammering the endpoint.
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
 
-// 8 pm India Standard Time = 14:30 UTC. We compare the UTC hour so the
-// hourly cron pings everyone once a day at that hour.
-const REMINDER_UTC_HOUR = 14
-
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
+
+// Compute the local hour (0–23) right now in a given IANA timezone.
+// Uses Intl.DateTimeFormat with hour-only formatting which Deno supports
+// out of the box.
+function localHourIn(tz: string, now: Date): number | null {
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      hour12: false,
+    })
+    const hourStr = fmt.format(now)
+    // 'en-US' with hour12=false returns "0" through "23". A few locales
+    // return "24" at midnight — normalise to 0.
+    const h = parseInt(hourStr, 10)
+    if (!Number.isFinite(h)) return null
+    return h === 24 ? 0 : h
+  } catch {
+    return null
+  }
+}
 
 // English and Hindi message pools — picked at random per recipient based on
 // their stored locale. Add more freely; the more variety the less the
@@ -90,20 +99,17 @@ Deno.serve(async (req: Request) => {
   }
 
   const now = new Date()
-  if (now.getUTCHours() !== REMINDER_UTC_HOUR) {
-    return new Response(
-      JSON.stringify({ ok: true, skipped: true, hour_utc: now.getUTCHours() }),
-      { headers: { 'content-type': 'application/json' } },
-    )
-  }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
   })
 
+  // Pull subs and the matching profiles in two queries, then merge in code.
+  // push_subscriptions.user_id and profiles.id both reference auth.users(id)
+  // but PostgREST can't infer that as a single-step join, so do it ourselves.
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth, locale')
+    .select('id, user_id, endpoint, p256dh, auth, locale')
   if (error) {
     return new Response(
       JSON.stringify({ ok: false, error: error.message }),
@@ -111,12 +117,46 @@ Deno.serve(async (req: Request) => {
     )
   }
 
+  const userIds = Array.from(new Set((subs ?? []).map((s: any) => s.user_id)))
+  const profilesById = new Map<string, { reminder_hour: number; reminder_tz: string }>()
+  if (userIds.length > 0) {
+    const { data: profs, error: pErr } = await supabase
+      .from('profiles')
+      .select('id, reminder_hour, reminder_tz')
+      .in('id', userIds)
+    if (pErr) {
+      return new Response(
+        JSON.stringify({ ok: false, error: pErr.message }),
+        { status: 500, headers: { 'content-type': 'application/json' } },
+      )
+    }
+    for (const p of profs ?? []) {
+      profilesById.set((p as any).id, {
+        reminder_hour: (p as any).reminder_hour,
+        reminder_tz: (p as any).reminder_tz,
+      })
+    }
+  }
+
   let sent = 0
   let failed = 0
+  let skipped = 0
   const removeIds: string[] = []
 
   await Promise.all(
     (subs ?? []).map(async (sub: any) => {
+      const prof = profilesById.get(sub.user_id)
+      const targetHour = prof?.reminder_hour
+      const tz: string = prof?.reminder_tz ?? 'Asia/Kolkata'
+      if (targetHour === undefined || targetHour === null) {
+        skipped++
+        return
+      }
+      const localHour = localHourIn(tz, now)
+      if (localHour === null || localHour !== targetHour) {
+        skipped++
+        return
+      }
       const msg = pickMessage(sub.locale)
       try {
         await webpush.sendNotification(
@@ -147,7 +187,14 @@ Deno.serve(async (req: Request) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, sent, failed, pruned: removeIds.length }),
+    JSON.stringify({
+      ok: true,
+      sent,
+      failed,
+      skipped,
+      pruned: removeIds.length,
+      total: subs?.length ?? 0,
+    }),
     { headers: { 'content-type': 'application/json' } },
   )
 })

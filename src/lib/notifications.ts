@@ -146,7 +146,52 @@ export async function requestPermissionAndSubscribe(): Promise<SubscribeResult> 
     return { ok: false, reason: 'persist-failed' }
   }
 
+  // Capture the browser's IANA timezone (e.g. 'Asia/Kolkata') so the
+  // server can compute the right local hour for this user. Best-effort —
+  // swallow failure since the subscription itself worked.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (tz) {
+      await supabase.from('profiles').update({ reminder_tz: tz }).eq('id', user.id)
+    }
+  } catch {
+    /* ignore */
+  }
+
   return { ok: true }
+}
+
+// Fire a one-off test push through the dedicated Edge Function. Returns
+// the server's response so the UI can show "sent to N devices" etc.
+export type TestResult =
+  | { ok: true; sent: number }
+  | { ok: false; reason: string }
+
+export async function sendTestNotification(): Promise<TestResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) return { ok: false, reason: 'not signed in' }
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-notification`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+    })
+    const body = await res.json().catch(() => null)
+    if (!res.ok) {
+      return { ok: false, reason: body?.reason ?? `HTTP ${res.status}` }
+    }
+    return { ok: true, sent: body?.sent ?? 0 }
+  } catch (err) {
+    void logError('sendTestNotification', err)
+    return { ok: false, reason: 'network error' }
+  }
 }
 
 export async function unsubscribeFromPush(): Promise<void> {

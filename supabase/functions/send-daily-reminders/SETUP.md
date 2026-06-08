@@ -1,12 +1,21 @@
 # Daily Reminders — One-Time Setup
 
-This Edge Function sends a Web Push notification to every subscribed device
-at 8 pm IST (= 14:30 UTC) every day. Setup is ~15 minutes of clicking.
+Two Edge Functions ship with this feature:
+- **send-daily-reminders** — pg_cron fires this hourly; it pushes to each
+  user whose own preferred local hour matches the current tick.
+- **send-test-notification** — fires a one-off push to the calling user
+  only, used by the "Send test notification" button in Settings.
 
-## 1. Apply the migration
+Setup is ~15 minutes of clicking.
 
-Run `supabase/migrations/0017_push_subscriptions.sql` in the Supabase SQL
-editor. Creates the `push_subscriptions` table with RLS.
+## 1. Apply the migrations
+
+Run these in the Supabase SQL editor, in order:
+- `supabase/migrations/0017_push_subscriptions.sql` — push_subscriptions
+  table with RLS.
+- `supabase/migrations/0018_profile_reminder_prefs.sql` — adds
+  `reminder_hour` (0–23, default 20) and `reminder_tz` (default
+  'Asia/Kolkata') to profiles, so each user can pick their own time.
 
 ## 2. Generate VAPID keys
 
@@ -60,15 +69,37 @@ supabase secrets set VAPID_SUBJECT=mailto:you@example.com
 supabase secrets set CRON_SECRET="$(openssl rand -base64 32)"
 ```
 
-## 5. Deploy the Edge Function
+## 5. Deploy BOTH Edge Functions
+
+### a. send-daily-reminders (the cron one)
 
 ```sh
 supabase functions deploy send-daily-reminders --no-verify-jwt
 ```
 
-`--no-verify-jwt` lets the cron job call it without an auth header. RLS
-still protects the data — the function uses the service role only inside
-itself, never exposes it to callers.
+`--no-verify-jwt` is fine here because the function self-protects with
+`CRON_SECRET`. The shared secret is what gates access, not JWT.
+
+Or via the dashboard: Edge Functions → `send-daily-reminders` → Edit →
+paste the latest contents of [index.ts](./index.ts) → make sure
+"Verify JWT" is **OFF** → Deploy.
+
+### b. send-test-notification (the "test push" one)
+
+```sh
+supabase functions deploy send-test-notification
+```
+
+NO `--no-verify-jwt` flag this time — we WANT JWT verification on so only
+authenticated users can fire it, and so we can identify which user is
+calling from their token.
+
+Or via the dashboard: Edge Functions → Create new function
+→ name `send-test-notification` → leave "Verify JWT" **ON** (default)
+→ paste contents of [../send-test-notification/index.ts](../send-test-notification/index.ts)
+→ Deploy.
+
+Both functions share the same VAPID secrets you set in step 4.
 
 ## 6. Schedule the cron
 
@@ -98,10 +129,14 @@ select cron.schedule(
 The pg_cron job table is only readable by the postgres superuser role on
 Supabase, so the secret stays private at rest.
 
-The function checks the UTC hour itself and only fans out notifications at
-14:00 UTC (= 8 pm IST). The other 23 invocations per day are no-op pings
-that return immediately — well within free-tier limits (24/day × 30 = 720
-invocations/month vs the 500k free quota).
+The function runs on every hourly tick, looks up each user's
+`reminder_hour` + `reminder_tz` from the profiles table, computes whether
+their current local hour matches, and sends only to the matching subset.
+So a user with `reminder_hour=20` `reminder_tz='Asia/Kolkata'` gets a
+push on the 14:00 UTC tick (= 20:00 IST); a user with
+`reminder_hour=9` `reminder_tz='America/Los_Angeles'` gets one on the
+17:00 UTC tick (= 09:00 PST). Same function, no schedule change needed
+when users pick different times.
 
 To stop the schedule later:
 
