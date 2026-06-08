@@ -417,6 +417,8 @@ const en = {
     'Tap "Add", then open Event Planner from your home screen icon.',
   'install.steps.openInSafari':
     'Note: this only works in Safari. Open this page in Safari first, then follow the steps.',
+  'install.steps.safariFallback':
+    "Tip: if you don't see \"Add to Home Screen\" in your browser's share menu, try opening this page in Safari instead.",
 } as const
 
 export type TKey = keyof typeof en
@@ -826,6 +828,8 @@ const hi: Partial<Record<TKey, string>> = {
     '"Add" दबाएँ, फिर होम स्क्रीन से Event Planner खोलें।',
   'install.steps.openInSafari':
     'नोट: यह केवल Safari में काम करता है। पहले Safari में यह पेज खोलें, फिर आगे बढ़ें।',
+  'install.steps.safariFallback':
+    'सुझाव: अगर आपके ब्राउज़र के share मेनू में "Add to Home Screen" नहीं दिखता, तो Safari में यह पेज खोलें।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

@@ -50,8 +50,8 @@ export function InstallPwaBanner({ onDismiss }: Props) {
         {expanded && (
           <div className="mt-3 pt-3 border-t border-teal-200 space-y-2.5">
             {nonSafari && (
-              <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
-                {t('install.steps.openInSafari')}
+              <p className="text-[11px] text-teal-800 bg-white/60 border border-teal-200 rounded-lg p-2">
+                {t('install.steps.safariFallback')}
               </p>
             )}
             <Step
