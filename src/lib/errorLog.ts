@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // Bumped manually when we ship a release worth distinguishing.
-const APP_VERSION = '0.5.0'
+const APP_VERSION = '0.6.0'
 
 type Metadata = Record<string, unknown>
 
@@ -49,4 +49,59 @@ export async function logError(
   } catch {
     // Swallow — logging errors must never produce more errors.
   }
+}
+
+// Install browser-level error capture. Catches uncaught JS errors and
+// unhandled promise rejections from anywhere in the app, including
+// places we didn't explicitly wrap with try/catch. Call once at boot
+// from main.tsx. Safe to call more than once — listeners are tagged so
+// duplicates no-op.
+let _globalHandlersInstalled = false
+export function installGlobalErrorCapture(): void {
+  if (typeof window === 'undefined' || _globalHandlersInstalled) return
+  _globalHandlersInstalled = true
+
+  window.addEventListener('error', (e) => {
+    void logError('window.error', e.error ?? e.message, {
+      filename: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+    })
+  })
+
+  window.addEventListener('unhandledrejection', (e) => {
+    void logError('unhandledrejection', e.reason, {
+      // e.reason can be anything — capture its shape for debugging.
+      reasonType: typeof e.reason,
+    })
+  })
+}
+
+// Log a manually-reported issue from the user via the Settings feedback
+// form. Same table as crash reports — just tagged with context
+// 'user_feedback' so you can filter for them. The message is whatever
+// the user typed; metadata auto-captures their current URL + locale +
+// network state so you don't have to ask follow-up questions.
+export async function sendUserFeedback(
+  text: string,
+  eventId?: string,
+): Promise<void> {
+  await logError(
+    'user_feedback',
+    text || '(no message)',
+    {
+      url: typeof window !== 'undefined' ? window.location.href : null,
+      locale:
+        typeof navigator !== 'undefined' ? navigator.language : null,
+      online:
+        typeof navigator !== 'undefined' ? navigator.onLine : null,
+      sw_supported:
+        typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
+      screen:
+        typeof window !== 'undefined'
+          ? `${window.innerWidth}x${window.innerHeight}`
+          : null,
+    },
+    eventId,
+  )
 }

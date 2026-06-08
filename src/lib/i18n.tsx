@@ -419,6 +419,18 @@ const en = {
     'Note: this only works in Safari. Open this page in Safari first, then follow the steps.',
   'install.steps.safariFallback':
     "Tip: if you don't see \"Add to Home Screen\" in your browser's share menu, try opening this page in Safari instead.",
+
+  // User feedback form (Settings)
+  'feedback.title': 'Report an issue',
+  'feedback.body':
+    "Spotted a bug or something that doesn't feel right? Tell us what happened.",
+  'feedback.placeholder':
+    'E.g. "The Save button didn\'t work when adding a payment last evening."',
+  'feedback.diagnosticsHint':
+    "We'll also include your browser info and current page so we can debug.",
+  'feedback.send': 'Send to us',
+  'feedback.sending': 'Sending…',
+  'feedback.sentConfirm': "Thanks — we'll look into it.",
 } as const
 
 export type TKey = keyof typeof en
@@ -830,6 +842,18 @@ const hi: Partial<Record<TKey, string>> = {
     'नोट: यह केवल Safari में काम करता है। पहले Safari में यह पेज खोलें, फिर आगे बढ़ें।',
   'install.steps.safariFallback':
     'सुझाव: अगर आपके ब्राउज़र के share मेनू में "Add to Home Screen" नहीं दिखता, तो Safari में यह पेज खोलें।',
+
+  // Feedback form
+  'feedback.title': 'समस्या रिपोर्ट करें',
+  'feedback.body':
+    'कोई बग या कुछ अजीब लगा? हमें बताएँ कि क्या हुआ।',
+  'feedback.placeholder':
+    'जैसे "कल शाम भुगतान जोड़ते समय Save बटन काम नहीं किया।"',
+  'feedback.diagnosticsHint':
+    'हम आपके ब्राउज़र की जानकारी और मौजूदा पेज भी शामिल करेंगे ताकि डीबग कर सकें।',
+  'feedback.send': 'भेजें',
+  'feedback.sending': 'भेज रहे हैं…',
+  'feedback.sentConfirm': 'धन्यवाद — हम देखेंगे।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

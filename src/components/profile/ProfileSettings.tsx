@@ -11,6 +11,7 @@ import {
   sendTestNotification,
   unsubscribeFromPush,
 } from '../../lib/notifications'
+import { sendUserFeedback } from '../../lib/errorLog'
 
 export function ProfileSettings() {
   const { user, profile, refreshProfile } = useAuth()
@@ -152,6 +153,8 @@ export function ProfileSettings() {
 
         <NotificationsSection />
 
+        <FeedbackSection />
+
         <Link
           to="/events"
           className="block text-center text-xs text-slate-500"
@@ -160,6 +163,60 @@ export function ProfileSettings() {
         </Link>
       </main>
     </div>
+  )
+}
+
+function FeedbackSection() {
+  const { t } = useLocale()
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSend = async () => {
+    setError(null)
+    setSending(true)
+    try {
+      await sendUserFeedback(text.trim())
+      setSent(true)
+      setText('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h2 className="text-sm font-semibold mb-1">{t('feedback.title')}</h2>
+      <p className="text-xs text-slate-500 mb-3">{t('feedback.body')}</p>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          if (sent) setSent(false)
+        }}
+        placeholder={t('feedback.placeholder')}
+        rows={3}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+      />
+      <p className="text-[11px] text-slate-400 mt-1">{t('feedback.diagnosticsHint')}</p>
+      <button
+        type="button"
+        onClick={handleSend}
+        disabled={sending}
+        className="mt-3 w-full bg-teal-600 text-white rounded-lg py-2 px-3 text-sm font-medium disabled:opacity-50 [touch-action:manipulation]"
+      >
+        {sending ? t('feedback.sending') : t('feedback.send')}
+      </button>
+      {sent && (
+        <p className="text-xs text-green-800 bg-green-50 rounded-lg p-2 mt-2">
+          {t('feedback.sentConfirm')}
+        </p>
+      )}
+      {error && <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2 mt-2">{error}</p>}
+    </section>
   )
 }
 
