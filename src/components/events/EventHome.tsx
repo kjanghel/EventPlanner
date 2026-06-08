@@ -50,6 +50,17 @@ export function EventHome() {
     }
   }, [id, t])
 
+  // iOS Safari workaround: fixed-position bottom nav sometimes ignores
+  // the first few taps after page load until a scroll triggers a layout
+  // settle. Force a 1-pixel scroll on mount to wake up hit-testing.
+  // No visible effect for users — runs once per route entry.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const orig = window.scrollY
+    window.scrollTo(0, orig + 1)
+    requestAnimationFrame(() => window.scrollTo(0, orig))
+  }, [])
+
   // Realtime: subscribe to changes for this event. Coalesce bursts with a
   // 300ms debounce, then bump refreshTick (tabs refetch) + re-pull totals.
   useEffect(() => {
@@ -128,7 +139,7 @@ export function EventHome() {
         />
       )}
 
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] [transform:translateZ(0)] [will-change:transform]">
         <ul className="grid grid-cols-5 max-w-md mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon
