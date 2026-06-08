@@ -404,6 +404,19 @@ const en = {
   'notifications.settings.reminderTime': 'Reminder time',
   'notifications.settings.reminderTimeHelp':
     "We'll send the daily nudge at this hour in your timezone.",
+
+  // PWA install nudge (iOS Safari only)
+  'install.banner.title': 'Install Event Planner on your home screen',
+  'install.banner.subtitle':
+    'Daily reminders only work after you install. Takes 10 seconds.',
+  'install.banner.show': 'Show me how',
+  'install.banner.hide': 'Hide',
+  'install.steps.step1': 'Tap the Share button at the bottom of Safari.',
+  'install.steps.step2': 'Scroll down and tap "Add to Home Screen".',
+  'install.steps.step3':
+    'Tap "Add", then open Event Planner from your home screen icon.',
+  'install.steps.openInSafari':
+    'Note: this only works in Safari. Open this page in Safari first, then follow the steps.',
 } as const
 
 export type TKey = keyof typeof en
@@ -800,6 +813,19 @@ const hi: Partial<Record<TKey, string>> = {
   'notifications.settings.reminderTime': 'रिमाइंडर का समय',
   'notifications.settings.reminderTimeHelp':
     'आपके टाइमज़ोन में इस समय रोज़ का नोटिफिकेशन भेजा जाएगा।',
+
+  // PWA install nudge
+  'install.banner.title': 'Event Planner को होम स्क्रीन पर इंस्टॉल करें',
+  'install.banner.subtitle':
+    'रोज़ का रिमाइंडर इंस्टॉल करने के बाद ही काम करेगा। बस 10 सेकंड।',
+  'install.banner.show': 'कैसे करें?',
+  'install.banner.hide': 'छुपाएँ',
+  'install.steps.step1': 'Safari के नीचे Share बटन दबाएँ।',
+  'install.steps.step2': 'नीचे स्क्रॉल करके "Add to Home Screen" चुनें।',
+  'install.steps.step3':
+    '"Add" दबाएँ, फिर होम स्क्रीन से Event Planner खोलें।',
+  'install.steps.openInSafari':
+    'नोट: यह केवल Safari में काम करता है। पहले Safari में यह पेज खोलें, फिर आगे बढ़ें।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

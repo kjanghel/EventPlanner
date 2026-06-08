@@ -10,13 +10,19 @@ import {
   hasVapidConfigured,
   isPushEnabled,
 } from '../../lib/notifications'
+import { isIOSBrowserNotPWA } from '../../lib/pwa'
 import { EnableNotificationsModal } from '../notifications/EnableNotificationsModal'
+import { InstallPwaBanner } from '../notifications/InstallPwaBanner'
 
 // Persistent ("never ask me again") dismissal lives in localStorage.
 // Session dismissal ("skip for now") lives in sessionStorage — re-shown
 // on browser reopen.
 const NEVER_KEY = 'notifications.neverPrompt'
 const SESSION_KEY = 'notifications.dismissedThisSession'
+// Install nudge dismissal is session-only: every fresh visit re-shows it
+// until the user actually installs (at which point isStandalone makes
+// the parent skip rendering entirely).
+const INSTALL_DISMISS_KEY = 'install.dismissedThisSession'
 
 function firstName(name: string | null | undefined, fallback: string) {
   if (!name) return fallback
@@ -39,6 +45,14 @@ export function EventsList() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+  const [showInstallBanner, setShowInstallBanner] = useState<boolean>(() => {
+    if (!isIOSBrowserNotPWA()) return false
+    try {
+      return sessionStorage.getItem(INSTALL_DISMISS_KEY) !== '1'
+    } catch {
+      return true
+    }
+  })
 
   useEffect(() => {
     let isMounted = true
@@ -78,9 +92,12 @@ export function EventsList() {
   // Notifications opt-in prompt: show once per browser session when the
   // user lands on the events list, unless they're already subscribed,
   // have permanently dismissed, or the browser can't do push at all.
+  // Suppressed entirely on iOS-non-PWA — push won't work there and the
+  // install banner is the right call-to-action.
   useEffect(() => {
     if (!session) return
     if (!canUseWebPush() || !hasVapidConfigured()) return
+    if (isIOSBrowserNotPWA()) return
     try {
       if (localStorage.getItem(NEVER_KEY) === '1') return
       if (sessionStorage.getItem(SESSION_KEY) === '1') return
@@ -95,6 +112,15 @@ export function EventsList() {
       cancelled = true
     }
   }, [session])
+
+  const dismissInstallBanner = () => {
+    try {
+      sessionStorage.setItem(INSTALL_DISMISS_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setShowInstallBanner(false)
+  }
 
   const dismissNotifPrompt = (mode: 'dismiss' | 'never') => {
     try {
@@ -117,6 +143,7 @@ export function EventsList() {
           onDismiss={dismissNotifPrompt}
         />
       )}
+      {showInstallBanner && <InstallPwaBanner onDismiss={dismissInstallBanner} />}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <Brand />
