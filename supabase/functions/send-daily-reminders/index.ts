@@ -98,6 +98,24 @@ Deno.serve(async (req: Request) => {
     )
   }
 
+  // Optional body params for manual testing:
+  //   { "force": true }                    → bypass local-hour check, send to all
+  //   { "force": true, "only_user_id": ".." } → same, but limit to one user
+  // Body is ignored when the request isn't POST or has no JSON.
+  let force = false
+  let onlyUserId: string | null = null
+  if (req.method === 'POST') {
+    try {
+      const body = await req.json()
+      if (body && typeof body === 'object') {
+        force = body.force === true
+        if (typeof body.only_user_id === 'string') onlyUserId = body.only_user_id
+      }
+    } catch {
+      /* ignore — body is optional */
+    }
+  }
+
   const now = new Date()
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
@@ -107,9 +125,11 @@ Deno.serve(async (req: Request) => {
   // Pull subs and the matching profiles in two queries, then merge in code.
   // push_subscriptions.user_id and profiles.id both reference auth.users(id)
   // but PostgREST can't infer that as a single-step join, so do it ourselves.
-  const { data: subs, error } = await supabase
+  let subsQuery = supabase
     .from('push_subscriptions')
     .select('id, user_id, endpoint, p256dh, auth, locale')
+  if (onlyUserId) subsQuery = subsQuery.eq('user_id', onlyUserId)
+  const { data: subs, error } = await subsQuery
   if (error) {
     return new Response(
       JSON.stringify({ ok: false, error: error.message }),
@@ -148,14 +168,16 @@ Deno.serve(async (req: Request) => {
       const prof = profilesById.get(sub.user_id)
       const targetHour = prof?.reminder_hour
       const tz: string = prof?.reminder_tz ?? 'Asia/Kolkata'
-      if (targetHour === undefined || targetHour === null) {
-        skipped++
-        return
-      }
-      const localHour = localHourIn(tz, now)
-      if (localHour === null || localHour !== targetHour) {
-        skipped++
-        return
+      if (!force) {
+        if (targetHour === undefined || targetHour === null) {
+          skipped++
+          return
+        }
+        const localHour = localHourIn(tz, now)
+        if (localHour === null || localHour !== targetHour) {
+          skipped++
+          return
+        }
       }
       const msg = pickMessage(sub.locale)
       try {
@@ -194,6 +216,9 @@ Deno.serve(async (req: Request) => {
       skipped,
       pruned: removeIds.length,
       total: subs?.length ?? 0,
+      force,
+      only_user_id: onlyUserId,
+      utc_now: now.toISOString(),
     }),
     { headers: { 'content-type': 'application/json' } },
   )

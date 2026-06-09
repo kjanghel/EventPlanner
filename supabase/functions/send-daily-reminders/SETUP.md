@@ -167,6 +167,38 @@ After steps 1–6:
 
 5. You should see the notification within ~5 seconds.
 
+## Real-time testing — force-fire the function
+
+To validate the full per-user flow without waiting for the next cron tick
+(or your scheduled hour), invoke with `"force": true`. Bypasses the
+local-hour check entirely and sends to every subscription matching the
+optional `only_user_id` filter.
+
+**Fire to yourself right now** (recommended for debugging):
+
+```sh
+curl -X POST "https://csgyhseofrdtxmmpgtmy.supabase.co/functions/v1/send-daily-reminders" \
+  -H "Authorization: Bearer <cron-secret>" \
+  -H "Content-Type: application/json" \
+  -d '{"force": true, "only_user_id": "<your-user-uuid>"}'
+```
+
+Find your user UUID with this SQL: `select auth.uid();` while signed in,
+or `select id from profiles where ...`.
+
+**Fire to everyone right now** (use sparingly — every subscriber gets a
+real notification):
+
+```sh
+curl -X POST "https://csgyhseofrdtxmmpgtmy.supabase.co/functions/v1/send-daily-reminders" \
+  -H "Authorization: Bearer <cron-secret>" \
+  -H "Content-Type: application/json" \
+  -d '{"force": true}'
+```
+
+The response echoes `force`, `only_user_id`, and `utc_now` so you can
+verify the function received what you sent.
+
 ## iOS note
 
 Web Push on iOS **only** works if the app is installed as a PWA — the user
