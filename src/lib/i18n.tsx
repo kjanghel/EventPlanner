@@ -431,6 +431,20 @@ const en = {
   'feedback.send': 'Send to us',
   'feedback.sending': 'Sending…',
   'feedback.sentConfirm': "Thanks — we'll look into it.",
+
+  // Pending event invites (shown to already-signed-in users invited
+  // to a new event after they had an account).
+  'pendingInvites.title': '{count} event invite waiting for you',
+  'pendingInvites.subtitle':
+    'You were invited to join. Review and accept or decline each one.',
+  'pendingInvites.review': 'Review',
+  'pendingInvites.invitedBy': 'Invited by {who}',
+  'pendingInvites.someone': 'someone',
+  'pendingInvites.unknownEvent': '(event no longer available)',
+  'pendingInvites.accept': 'Accept',
+  'pendingInvites.decline': 'Decline',
+  'pendingInvites.couldNotAccept': 'Could not accept invite.',
+  'pendingInvites.couldNotDecline': 'Could not decline invite.',
 } as const
 
 export type TKey = keyof typeof en
@@ -854,6 +868,19 @@ const hi: Partial<Record<TKey, string>> = {
   'feedback.send': 'भेजें',
   'feedback.sending': 'भेज रहे हैं…',
   'feedback.sentConfirm': 'धन्यवाद — हम देखेंगे।',
+
+  // Pending invites
+  'pendingInvites.title': '{count} इवेंट इनवाइट आपका इंतज़ार कर रहा है',
+  'pendingInvites.subtitle':
+    'आपको इस इवेंट में जोड़ा गया है। हर इनवाइट को देखकर स्वीकार या अस्वीकार करें।',
+  'pendingInvites.review': 'देखें',
+  'pendingInvites.invitedBy': '{who} ने आमंत्रित किया',
+  'pendingInvites.someone': 'किसी',
+  'pendingInvites.unknownEvent': '(इवेंट उपलब्ध नहीं)',
+  'pendingInvites.accept': 'स्वीकार करें',
+  'pendingInvites.decline': 'अस्वीकार करें',
+  'pendingInvites.couldNotAccept': 'इनवाइट स्वीकार नहीं हो पाया।',
+  'pendingInvites.couldNotDecline': 'इनवाइट अस्वीकार नहीं हो पाया।',
 }
 
 const dictionaries: Record<Locale, Partial<Record<TKey, string>>> = { en, hi }

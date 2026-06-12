@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { listMyEvents, type EventTotals } from '../../lib/queries'
 import { useAuth } from '../../lib/auth'
 import { UpcomingBanner } from './UpcomingBanner'
+import { PendingInvitesSection } from './PendingInvitesSection'
 import { Brand } from '../brand/Logo'
 import { formatAmount, formatDate, useLocale } from '../../lib/i18n'
 import {
@@ -41,6 +42,7 @@ export function EventsList() {
   const { profile, session, signOut } = useAuth()
   const { locale, t } = useLocale()
   const [events, setEvents] = useState<EventTotals[] | null>(null)
+  const [eventsRefreshTick, setEventsRefreshTick] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -76,7 +78,7 @@ export function EventsList() {
       isMounted = false
       clearTimeout(timeout)
     }
-  }, [session, t])
+  }, [session, t, eventsRefreshTick])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -144,6 +146,7 @@ export function EventsList() {
         />
       )}
       {showInstallBanner && <InstallPwaBanner onDismiss={dismissInstallBanner} />}
+      <PendingInvitesSection onAccepted={() => setEventsRefreshTick((n) => n + 1)} />
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <Brand />

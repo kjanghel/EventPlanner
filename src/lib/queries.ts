@@ -1000,6 +1000,48 @@ export async function cancelInvite(inviteId: string): Promise<void> {
   if (error) throw error
 }
 
+// =====================================================================
+// Invitee-side: pending invites for the current signed-in user. All
+// three calls are SECURITY DEFINER RPCs (see migration 0020) so the
+// server enforces the email match.
+// =====================================================================
+
+export type PendingInviteForMe = {
+  invite_id: string
+  event_id: string
+  event_name: string | null
+  invited_email: string
+  invited_by: string | null
+  inviter_name: string | null
+  inviter_email: string | null
+  created_at: string
+}
+
+export async function listMyPendingInvites(): Promise<PendingInviteForMe[]> {
+  const { data, error } = await supabase.rpc('list_my_pending_invites')
+  if (error) {
+    void logError('listMyPendingInvites', error)
+    throw error
+  }
+  return (data ?? []) as PendingInviteForMe[]
+}
+
+export async function acceptPendingInvite(inviteId: string): Promise<void> {
+  const { error } = await supabase.rpc('accept_pending_invite', { invite_id: inviteId })
+  if (error) {
+    void logError('acceptPendingInvite', error, { inviteId })
+    throw error
+  }
+}
+
+export async function declinePendingInvite(inviteId: string): Promise<void> {
+  const { error } = await supabase.rpc('decline_pending_invite', { invite_id: inviteId })
+  if (error) {
+    void logError('declinePendingInvite', error, { inviteId })
+    throw error
+  }
+}
+
 export async function removeMember(eventId: string, userId: string): Promise<void> {
   // event_members has a DELETE policy (owner-or-self) but no UPDATE policy,
   // so a soft-delete update would silently affect zero rows under RLS.
